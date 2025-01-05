@@ -54,12 +54,12 @@ class JobShopChromosome:
 
             # Add this job's ID that many times to our list
             operations.extend([job_id] * num_operations)
-            print(f"Added {num_operations} operations for Job {job_id}")
-            print(f"Current operations list: {operations}")
+            # print(f"Added {num_operations} operations for Job {job_id}")
+            # print(f"Current operations list: {operations}")
 
         # Shuffle the list randomly to create our chromosome
         np.random.shuffle(operations)
-        print(f"Final chromosome after shuffling: {operations}")
+        # print(f"Final chromosome after shuffling: {operations}")
         return operations
 
     def validate_chromosome(self) -> bool:
@@ -97,8 +97,8 @@ class JobShopChromosome:
         job_available_time = {}                     # When will each job be ready for its next operation?
         schedule = {}                               # Our final schedule (what we'll return)
 
-        print("\nDecoding chromosome into schedule:")
-        print(f"Chromosome sequence: {self.chromosome}")
+        # print("\nDecoding chromosome into schedule:")
+        # print(f"Chromosome sequence: {self.chromosome}")
 
         # Process each job in our sequence
         for position, job_id in enumerate(self.chromosome):
@@ -118,12 +118,12 @@ class JobShopChromosome:
             end_time = start_time + processing_time                      # Calculate when we'll finish
 
             # Print detailed information about what we're scheduling
-            print(f"\nScheduling Job {job_id}, Operation {operation_index}:")
-            print(f"  Using Machine {machine_id} for {processing_time} time units")
-            print(f"  Machine ready at: {machine_ready}")
-            print(f"  Job ready at: {job_ready}")
-            print(f"  Will start at: {start_time}")
-            print(f"  Will finish at: {end_time}")
+            # print(f"\nScheduling Job {job_id}, Operation {operation_index}:")
+            # print(f"  Using Machine {machine_id} for {processing_time} time units")
+            # print(f"  Machine ready at: {machine_ready}")
+            # print(f"  Job ready at: {job_ready}")
+            # print(f"  Will start at: {start_time}")
+            # print(f"  Will finish at: {end_time}")
 
             # Update our tracking information
             machine_available_time[machine_id] = end_time  # Machine will be busy until end_time
@@ -138,7 +138,7 @@ class JobShopChromosome:
 
         # The fitness is the total time needed (when does the last operation finish?)
         self.fitness = max(job_available_time.values())
-        print(f"\nFinal schedule completion time: {self.fitness}")
+        # print(f"\nFinal schedule completion time: {self.fitness}")
         return schedule
 
 

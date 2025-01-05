@@ -1,5 +1,6 @@
-from typing import  List
+from typing import List
 import matplotlib.pyplot as plt
+
 
 def setup_plot_style():
     """Setup common plot styling."""
@@ -17,3 +18,4 @@ def get_color_palette(num_colors: int) -> List[str]:
     ]
     colors = base_colors * (num_colors // len(base_colors) + 1)
     return colors[:num_colors]
+

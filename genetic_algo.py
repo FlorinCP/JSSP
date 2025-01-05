@@ -6,6 +6,8 @@ from genetic_operators import smart_crossover, swap_mutation
 from models import JobShopProblem, JobShopChromosome
 
 
+
+
 class GeneticAlgorithm:
     def __init__(self,
                  population_size: int = 100,
@@ -27,13 +29,20 @@ class GeneticAlgorithm:
             'diversity': [],
             'best_solutions': []
         }
+        self.best_solution_ever = None
+        self.best_fitness_ever = float('inf')
 
     def initialize_population(self):
         """Create initial random population."""
         self.population = []
-        for _ in range(self.population_size):
+        print("\nInitializing population with random chromosomes:")
+        for i in range(self.population_size):
             chromosome = JobShopChromosome(self.problem)
             self.population.append(chromosome)
+
+            # Debug info for first few chromosomes
+            if i < 5:
+                print(f"Chromosome {i}: {chromosome.chromosome}")
 
     def tournament_selection(self) -> JobShopChromosome:
         """Select parent using tournament selection.
@@ -65,56 +74,104 @@ class GeneticAlgorithm:
                 comparisons += 1
         return total_diff / comparisons if comparisons > 0 else 0
 
-    def run(self) -> Tuple[JobShopChromosome, Dict]:
-        """Run the genetic algorithm with enhanced tracking.
 
-        Returns:
-            Tuple[JobShopChromosome, Dict]: Best solution and history dictionary
-        """
-        print("Initializing population...")
-        self.initialize_population()
-
+    def evaluate_population(self):
+        """Evaluate all chromosomes in the population."""
+        fitness_values = []
         for chromosome in self.population:
             chromosome.schedule = chromosome.decode_to_schedule()
+            fitness_values.append(chromosome.fitness)
+
+            # Update best solution ever if we found a better one
+            if chromosome.fitness < self.best_fitness_ever:
+                self.best_fitness_ever = chromosome.fitness
+                self.best_solution_ever = chromosome
+
+        print(f"\nPopulation evaluation:")
+        print(f"Min fitness: {min(fitness_values):.2f}")
+        print(f"Max fitness: {max(fitness_values):.2f}")
+        print(f"Avg fitness: {sum(fitness_values) / len(fitness_values):.2f}")
+        return fitness_values
+
+    def run(self) -> Tuple[JobShopChromosome, Dict]:
+        """Run the genetic algorithm with enhanced tracking."""
+        print("Starting genetic algorithm...")
+        self.initialize_population()
+
+        # Evaluate initial population
+        print("\nEvaluating initial population...")
+        initial_fitness = self.evaluate_population()
+        print(f"Initial best fitness: {min(initial_fitness):.2f}")
 
         for generation in range(self.generations):
             # Sort population by fitness
             self.population.sort(key=lambda x: x.fitness)
 
-            # Update history
-            best_fitness = self.population[0].fitness
-            worst_fitness = self.population[-1].fitness
-            avg_fitness = np.mean([chr.fitness for chr in self.population])
-            diversity = self.calculate_diversity()
+            # Get current generation statistics
+            current_best = self.population[0].fitness
+            current_worst = self.population[-1].fitness
+            current_avg = np.mean([chr.fitness for chr in self.population])
+            current_diversity = self.calculate_diversity()
 
-            self.history['best_fitness'].append(best_fitness)
-            self.history['worst_fitness'].append(worst_fitness)
-            self.history['avg_fitness'].append(avg_fitness)
-            self.history['diversity'].append(diversity)
+            # Update history
+            self.history['best_fitness'].append(current_best)
+            self.history['worst_fitness'].append(current_worst)
+            self.history['avg_fitness'].append(current_avg)
+            self.history['diversity'].append(current_diversity)
             self.history['best_solutions'].append(self.population[0])
 
+            # Print detailed generation info
             if generation % 10 == 0:
-                print(f"Generation {generation}: Best={best_fitness:.2f}, "
-                      f"Avg={avg_fitness:.2f}, Diversity={diversity:.2f}")
+                print(f"\nGeneration {generation}:")
+                print(f"Best Fitness: {current_best:.2f}")
+                print(f"Worst Fitness: {current_worst:.2f}")
+                print(f"Average Fitness: {current_avg:.2f}")
+                print(f"Population Diversity: {current_diversity:.2f}")
+                print(f"Best solution ever: {self.best_fitness_ever:.2f}")
 
             # Create new population
             new_population = []
+
+            # Elitism
             new_population.extend(self.population[:self.elite_size])
 
+            # Fill rest of population
             while len(new_population) < self.population_size:
+                # Select parents
                 parent1 = self.tournament_selection()
                 parent2 = self.tournament_selection()
-                child_sequence = smart_crossover(parent1.chromosome,
-                                                 parent2.chromosome,
-                                                 self.problem)
+
+                # Create child
+                child_sequence = smart_crossover(
+                    parent1.chromosome,
+                    parent2.chromosome,
+                    self.problem
+                )
                 child_sequence = swap_mutation(child_sequence, self.mutation_rate)
 
+                # Create and evaluate new chromosome
                 child = JobShopChromosome(self.problem)
                 child.chromosome = child_sequence
                 child.schedule = child.decode_to_schedule()
+
+                # Debug info occasionally
+                if len(new_population) == self.population_size // 10:
+                    print(f"\nSample crossover result:")
+                    print(f"Parent 1 fitness: {parent1.fitness:.2f}")
+                    print(f"Parent 2 fitness: {parent2.fitness:.2f}")
+                    print(f"Child fitness: {child.fitness:.2f}")
+
                 new_population.append(child)
 
             self.population = new_population
 
-        self.population.sort(key=lambda x: x.fitness)
-        return self.population[0], self.history
+            # Early stopping if no improvement for many generations
+            if current_best >= self.best_fitness_ever and generation > 20:
+                stagnant_generations = sum(1 for i in range(-20, 0)
+                                           if self.history['best_fitness'][i] >= self.best_fitness_ever)
+                if stagnant_generations == 20:
+                    print("\nEarly stopping: No improvement for 20 generations")
+                    break
+
+        # Return best solution ever found
+        return self.best_solution_ever, self.history
