@@ -1,11 +1,9 @@
 from typing import Tuple, Dict
-
+from copy import deepcopy
 import numpy as np
 
 from genetic_operators import smart_crossover, swap_mutation
 from models import JobShopProblem, JobShopChromosome
-
-
 
 
 class GeneticAlgorithm:
@@ -74,7 +72,6 @@ class GeneticAlgorithm:
                 comparisons += 1
         return total_diff / comparisons if comparisons > 0 else 0
 
-
     def evaluate_population(self):
         """Evaluate all chromosomes in the population."""
         fitness_values = []
@@ -83,9 +80,14 @@ class GeneticAlgorithm:
             fitness_values.append(chromosome.fitness)
 
             # Update best solution ever if we found a better one
+            print(f"Chromosome fitness: {chromosome.fitness:.2f}, best fitness: {self.best_fitness_ever:.2f}")
             if chromosome.fitness < self.best_fitness_ever:
+                print(f"\nNew best solution found with fitness: {chromosome.fitness}")
                 self.best_fitness_ever = chromosome.fitness
-                self.best_solution_ever = chromosome
+                # Create a deep copy of the chromosome to preserve the best solution
+                self.best_solution_ever = deepcopy(chromosome)
+                # Ensure the schedule is preserved in the copy
+                self.best_solution_ever.schedule = self.best_solution_ever.decode_to_schedule()
 
         print(f"\nPopulation evaluation:")
         print(f"Min fitness: {min(fitness_values):.2f}")
@@ -118,7 +120,11 @@ class GeneticAlgorithm:
             self.history['worst_fitness'].append(current_worst)
             self.history['avg_fitness'].append(current_avg)
             self.history['diversity'].append(current_diversity)
-            self.history['best_solutions'].append(self.population[0])
+
+            # Store current best solution
+            best_solution_copy = deepcopy(self.population[0])
+            best_solution_copy.schedule = best_solution_copy.decode_to_schedule()
+            self.history['best_solutions'].append(best_solution_copy)
 
             # Print detailed generation info
             if generation % 10 == 0:
@@ -132,8 +138,8 @@ class GeneticAlgorithm:
             # Create new population
             new_population = []
 
-            # Elitism
-            new_population.extend(self.population[:self.elite_size])
+            # Elitism with deep copy
+            new_population.extend([deepcopy(chrom) for chrom in self.population[:self.elite_size]])
 
             # Fill rest of population
             while len(new_population) < self.population_size:
@@ -153,6 +159,14 @@ class GeneticAlgorithm:
                 child = JobShopChromosome(self.problem)
                 child.chromosome = child_sequence
                 child.schedule = child.decode_to_schedule()
+
+                # Check if child is new best solution
+                if child.fitness < self.best_fitness_ever:
+                    print(f"\nNew best solution found in generation {generation} with fitness: {child.fitness}")
+                    self.best_fitness_ever = child.fitness
+                    best_copy = deepcopy(child)
+                    best_copy.schedule = best_copy.decode_to_schedule()
+                    self.best_solution_ever = best_copy
 
                 # Debug info occasionally
                 if len(new_population) == self.population_size // 10:

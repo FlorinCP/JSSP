@@ -1,59 +1,74 @@
+import random
 from typing import List
 
-import numpy as np
 
-from models import JobShopProblem
+def smart_crossover(parent1: List[int], parent2: List[int], problem) -> List[int]:
+    """Enhanced crossover operator with better diversity preservation."""
+    # Get length of chromosomes
+    chromosome_length = len(parent1)
 
+    # Choose two random crossover points
+    point1, point2 = sorted(random.sample(range(chromosome_length), 2))
 
-def smart_crossover(parent1: List[int], parent2: List[int], problem: JobShopProblem) -> List[int]:
-    """
-    Creates a new solution by combining parts of two parent solutions.
-    Makes sure the new solution is valid (has correct number of operations).
-    """
-    # First, figure out how many operations each job needs
-    # For example, this is one possible outputs: {0: 3, 1: 3, 2: 2}
-    required_operations = {
-        job_id: len(operations)
-        for job_id, operations in enumerate(problem.jobs_data)
-    }
+    # Initialize child with invalid values
+    child = [-1] * chromosome_length
 
-    # Start with first half of parent1
-    crossover_point = len(parent1) // 2
-    child = parent1[:crossover_point].copy()
+    # Copy segment from first parent
+    child[point1:point2] = parent1[point1:point2]
 
-    # Keep track of operations we've used so far
-    # This could be {0: 2, 1: 1, 2: 1},
-    # we need to make sure that the other part of the child has the remaining operations for a valid sequence
-    current_operations = {}
-    for job in child:
-        current_operations[job] = current_operations.get(job, 0) + 1
+    # Track used operations for each job
+    used_ops = {}
+    for job_id in child[point1:point2]:
+        if job_id != -1:
+            used_ops[job_id] = used_ops.get(job_id, 0) + 1
 
-    # Add remaining operations, making sure we maintain valid counts
-    parent2_index = crossover_point
-    while len(child) < len(parent1):
-        # Try to use job from parent2
-        candidate_job = parent2[parent2_index]
-
-        # Can we still add more of this job?
-        if current_operations.get(candidate_job, 0) < required_operations[candidate_job]:
-            child.append(candidate_job)
-            current_operations[candidate_job] = current_operations.get(candidate_job, 0) + 1
-        else:
-            # Find a job that still needs operations
-            for job_id, required in required_operations.items():
-                if current_operations.get(job_id, 0) < required:
-                    child.append(job_id)
-                    current_operations[job_id] = current_operations.get(job_id, 0) + 1
+    # Fill remaining positions from second parent
+    parent2_idx = 0
+    for i in range(chromosome_length):
+        if i < point1 or i >= point2:  # Outside the copied segment
+            while parent2_idx < chromosome_length:
+                job_id = parent2[parent2_idx]
+                max_ops = len(problem.jobs_data[job_id])
+                if used_ops.get(job_id, 0) < max_ops:
+                    child[i] = job_id
+                    used_ops[job_id] = used_ops.get(job_id, 0) + 1
+                    parent2_idx += 1
                     break
+                parent2_idx += 1
 
-        # Move to next position in parent2 (wrap around if needed)
-        parent2_index = (parent2_index + 1) % len(parent2)
+    # Validate and repair if necessary
+    if -1 in child or not problem.validate_solution(child):
+        # If invalid, create a repair sequence
+        missing_ops = {}
+        for job_id, job_ops in enumerate(problem.jobs_data):
+            required = len(job_ops)
+            actual = sum(1 for x in child if x == job_id)
+            if required > actual:
+                missing_ops[job_id] = required - actual
+
+        # Fill missing operations
+        for i, gene in enumerate(child):
+            if gene == -1:
+                for job_id, count in missing_ops.items():
+                    if count > 0:
+                        child[i] = job_id
+                        missing_ops[job_id] -= 1
+                        break
 
     return child
 
+
 def swap_mutation(chromosome: List[int], mutation_rate: float) -> List[int]:
-    """Swap mutation operator."""
-    if np.random.random() < mutation_rate:
-        pos1, pos2 = np.random.choice(len(chromosome), 2, replace=False)
-        chromosome[pos1], chromosome[pos2] = chromosome[pos2], chromosome[pos1]
+    """Enhanced mutation operator with variable mutation strength."""
+    if random.random() < mutation_rate:
+        # Determine mutation strength (1 to 3 swaps)
+        num_swaps = random.randint(1, 3)
+
+        for _ in range(num_swaps):
+            # Choose positions to swap
+            idx1, idx2 = random.sample(range(len(chromosome)), 2)
+
+            # Perform swap
+            chromosome[idx1], chromosome[idx2] = chromosome[idx2], chromosome[idx1]
+
     return chromosome

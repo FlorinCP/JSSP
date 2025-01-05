@@ -15,7 +15,7 @@ class JobShopSimulation:
     def __init__(self,
                  population_size: int = 100,
                  generations: int = 100,
-                 elite_size: int = 2,
+                 elite_size: int = 3,
                  tournament_size: int = 5,
                  mutation_rate: float = 0.1,
                  output_dir: str = 'results'):
@@ -54,8 +54,7 @@ class JobShopSimulation:
         # Plot and save schedule
         print("Creating schedule plot...")
         schedule_fig = plot_schedule(
-            best_solution.schedule,
-            best_solution.problem.num_machines
+            best_solution,
         )
         schedule_fig.savefig(
             self.output_dir / 'best_schedule.png',
@@ -103,6 +102,7 @@ def main():
         )
 
         best_solution, history, stats = simulation.run()
+        print(best_solution)
 
     except KeyboardInterrupt:
         print("\nSimulation terminated by user.")

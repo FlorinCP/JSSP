@@ -4,27 +4,46 @@ import numpy as np
 
 
 class JobShopProblem:
-    """
-    This class represents a Job Shop Scheduling Problem.
-    Think of it like managing a workshop where different jobs need to use different machines
-    in a specific order, like a car going through different stations in a repair shop.
-    """
+    """Job Shop Scheduling Problem definition."""
 
     def __init__(self):
-        # jobs_data stores our manufacturing instructions
-        # For each job, we have a list of tuples: (machine_number, time_needed)
-        # Example: [(0,3), (1,2)] means:
-        #   - First use machine 0 for 3 time units
-        #   - Then use machine 1 for 2 time units
+        # This is a larger problem instance with 6 jobs and 6 machines
         self.jobs_data = [
-            [(0, 3), (1, 2), (2, 2)],  # Job 0's sequence of operations
-            [(0, 2), (2, 1), (1, 4)],  # Job 1's sequence of operations
-            [(1, 4), (2, 3)]           # Job 2's sequence of operations
+            [(0, 5), (1, 4), (2, 4), (3, 3), (4, 6), (5, 3), (6, 5), (7, 4), (8, 3), (9, 4)],  # Job 0
+            [(1, 6), (0, 5), (3, 4), (2, 3), (5, 5), (4, 4), (7, 5), (6, 6), (9, 3), (8, 4)],  # Job 1
+            [(2, 4), (1, 5), (0, 5), (4, 4), (3, 5), (6, 4), (5, 5), (8, 5), (7, 4), (9, 5)],  # Job 2
+            [(3, 5), (2, 6), (1, 4), (5, 3), (4, 5), (7, 4), (6, 5), (9, 4), (8, 5), (0, 4)],  # Job 3
+            [(4, 3), (3, 4), (2, 5), (6, 4), (5, 4), (8, 3), (7, 5), (0, 5), (9, 4), (1, 5)],  # Job 4
+            [(5, 4), (4, 5), (3, 4), (7, 3), (6, 5), (9, 4), (8, 4), (1, 5), (0, 4), (2, 3)],  # Job 5
+            [(6, 5), (5, 4), (4, 3), (8, 4), (7, 5), (0, 5), (9, 4), (2, 3), (1, 4), (3, 5)],  # Job 6
+            [(7, 4), (6, 5), (5, 4), (9, 3), (8, 4), (1, 5), (0, 4), (3, 4), (2, 5), (4, 4)],  # Job 7
+            [(8, 3), (7, 4), (6, 5), (0, 4), (9, 5), (2, 4), (1, 3), (4, 5), (3, 4), (5, 5)],  # Job 8
+            [(9, 5), (8, 4), (7, 3), (1, 5), (0, 4), (3, 5), (2, 4), (5, 3), (4, 4), (6, 5)]  # Job 9
         ]
+        self.num_jobs = len(self.jobs_data)
+        self.num_machines = 6
 
-        # Count how many jobs and machines we have
-        self.num_jobs = len(self.jobs_data)  # How many different jobs
-        self.num_machines = 3                # How many machines available
+    def validate_solution(self, chromosome):
+        """Validate if a chromosome represents a valid solution."""
+        # Count operations per job
+        job_counts = {}
+        for job_id in chromosome:
+            job_counts[job_id] = job_counts.get(job_id, 0) + 1
+
+        # Check if each job has correct number of operations
+        for job_id, job_ops in enumerate(self.jobs_data):
+            if job_counts.get(job_id, 0) != len(job_ops):
+                return False
+        return True
+
+    def get_operation_details(self, job_id: int, operation_idx: int) -> tuple:
+        """Get machine and processing time for a specific operation."""
+        return self.jobs_data[job_id][operation_idx]
+
+    def calculate_makespan(self, schedule: dict) -> int:
+        """Calculate the total makespan of a schedule."""
+        return max(details['end'] for details in schedule.values())
+
 
 class JobShopChromosome:
     """

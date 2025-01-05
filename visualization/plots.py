@@ -2,6 +2,8 @@ from typing import Dict
 import matplotlib.pyplot as plt
 import numpy as np
 
+from models import JobShopChromosome
+
 
 def plot_fitness_evolution(history: Dict) -> plt.Figure:
     """Plot fitness evolution over generations."""
@@ -86,11 +88,18 @@ def plot_population_diversity(history: Dict) -> plt.Figure:
     return fig
 
 
-def plot_schedule(schedule: Dict, num_machines: int) -> plt.Figure:
+def plot_schedule(chromosome: JobShopChromosome) -> plt.Figure:
     """Create Gantt chart of the schedule."""
+    # Ensure schedule is decoded
+    schedule = chromosome.decode_to_schedule()
+    num_machines = chromosome.problem.num_machines
+
     plt.style.use('default')
     fig = plt.figure(figsize=(15, 8))
     ax = plt.gca()
+
+    # Calculate makespan by finding the latest end time of any operation
+    makespan = max(details['end'] for details in schedule.values())
 
     # Use a colorblind-friendly palette
     colors = ['#2ecc71', '#3498db', '#e74c3c', '#f1c40f', '#9b59b6',
@@ -99,14 +108,13 @@ def plot_schedule(schedule: Dict, num_machines: int) -> plt.Figure:
         colors.extend(colors)
     colors = colors[:num_machines]
 
-    # Calculate makespan
-    makespan = max(details['end'] for details in schedule.values())
-
     # Track job positions
     job_positions = {}
 
-    for (job_id, op_idx), details in sorted(schedule.items(),
-                                            key=lambda x: (x[1]['machine'], x[1]['start'])):
+    # Sort operations by machine and start time
+    sorted_ops = sorted(schedule.items(), key=lambda x: (x[1]['machine'], x[1]['start']))
+
+    for (job_id, op_idx), details in sorted_ops:
         start = details['start']
         duration = details['end'] - start
         machine = details['machine']
@@ -128,6 +136,9 @@ def plot_schedule(schedule: Dict, num_machines: int) -> plt.Figure:
     plt.ylabel('Machine', fontsize=12)
     plt.yticks(range(num_machines), [f'M{i}' for i in range(num_machines)])
     plt.grid(True, axis='x', linestyle='--', alpha=0.7)
+
+    # Set x-axis limits explicitly to the makespan
+    plt.xlim(0, makespan)
 
     # Improve legend
     handles, labels = ax.get_legend_handles_labels()
