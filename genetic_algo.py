@@ -2,7 +2,7 @@ import numpy as np
 from typing import List, Tuple
 
 from job_shop_chromosome import JobShopChromosome
-from main import JobShopProblem
+from job_shop_problem import JobShopProblem
 from utils import smart_crossover
 
 

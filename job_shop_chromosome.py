@@ -1,5 +1,8 @@
-from typing import List
-from main import JobShopProblem
+from typing import List, Dict
+
+import numpy as np
+
+from job_shop_problem import JobShopProblem
 
 
 class JobShopChromosome:

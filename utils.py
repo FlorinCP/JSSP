@@ -1,7 +1,8 @@
 from typing import List
 
+from genetic_algo import GeneticAlgorithm
 from job_shop_chromosome import JobShopChromosome
-from main import JobShopProblem
+from job_shop_problem import JobShopProblem
 
 
 def smart_crossover(parent1: List[int], parent2: List[int], problem: JobShopProblem) -> List[int]:
