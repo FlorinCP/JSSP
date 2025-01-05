@@ -22,3 +22,5 @@ rad.json
 TestResults.xml
 /.idea
 /__pycache__
+*.pyc
+/results

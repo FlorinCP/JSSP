@@ -1,9 +1,9 @@
-import numpy as np
-from typing import List, Tuple
+from typing import Tuple, Dict
 
-from job_shop_chromosome import JobShopChromosome
-from job_shop_problem import JobShopProblem
-from utils import smart_crossover
+import numpy as np
+
+from genetic_operators import smart_crossover, swap_mutation
+from models import JobShopProblem, JobShopChromosome
 
 
 class GeneticAlgorithm:
@@ -20,85 +20,101 @@ class GeneticAlgorithm:
         self.tournament_size = tournament_size
         self.mutation_rate = mutation_rate
         self.population = []
-        self.best_fitness_history = []
-        self.avg_fitness_history = []
+        self.history = {
+            'best_fitness': [],
+            'worst_fitness': [],
+            'avg_fitness': [],
+            'diversity': [],
+            'best_solutions': []
+        }
 
     def initialize_population(self):
-        """Create initial random population"""
+        """Create initial random population."""
         self.population = []
         for _ in range(self.population_size):
             chromosome = JobShopChromosome(self.problem)
             self.population.append(chromosome)
 
     def tournament_selection(self) -> JobShopChromosome:
-        """Select parent using tournament selection"""
-        tournament = np.random.choice(self.population, self.tournament_size, replace=False)
+        """Select parent using tournament selection.
+
+        Returns:
+            JobShopChromosome: The selected parent chromosome
+        """
+        # Randomly select tournament_size chromosomes from the population
+        tournament = np.random.choice(
+            self.population,
+            size=self.tournament_size,
+            replace=False  # Don't select the same chromosome twice
+        )
+
+        # Return the chromosome with the best fitness from the tournament
         return min(tournament, key=lambda x: x.fitness)
 
-    def mutation(self, chromosome: List[int]) -> List[int]:
-        """Apply swap mutation with given probability"""
-        if np.random.random() < self.mutation_rate:
-            # Select two random positions and swap them
-            pos1, pos2 = np.random.choice(len(chromosome), 2, replace=False)
-            chromosome[pos1], chromosome[pos2] = chromosome[pos2], chromosome[pos1]
-        return chromosome
+    def calculate_diversity(self) -> float:
+        """Calculate population diversity using average chromosome difference."""
+        total_diff = 0
+        comparisons = 0
+        for i in range(len(self.population)):
+            for j in range(i + 1, len(self.population)):
+                diff = sum(a != b for a, b in zip(
+                    self.population[i].chromosome,
+                    self.population[j].chromosome
+                ))
+                total_diff += diff
+                comparisons += 1
+        return total_diff / comparisons if comparisons > 0 else 0
 
-    def run(self) -> Tuple[JobShopChromosome, List[float], List[float]]:
-        """Run the genetic algorithm"""
-        # Initialize population
+    def run(self) -> Tuple[JobShopChromosome, Dict]:
+        """Run the genetic algorithm with enhanced tracking.
+
+        Returns:
+            Tuple[JobShopChromosome, Dict]: Best solution and history dictionary
+        """
         print("Initializing population...")
         self.initialize_population()
 
-        # Evaluate initial population
         for chromosome in self.population:
-            _ = chromosome.decode_to_schedule()  # This sets the fitness
+            chromosome.schedule = chromosome.decode_to_schedule()
 
-        # Main loop
         for generation in range(self.generations):
             # Sort population by fitness
             self.population.sort(key=lambda x: x.fitness)
 
-            # Store statistics
+            # Update history
             best_fitness = self.population[0].fitness
+            worst_fitness = self.population[-1].fitness
             avg_fitness = np.mean([chr.fitness for chr in self.population])
-            self.best_fitness_history.append(best_fitness)
-            self.avg_fitness_history.append(avg_fitness)
+            diversity = self.calculate_diversity()
+
+            self.history['best_fitness'].append(best_fitness)
+            self.history['worst_fitness'].append(worst_fitness)
+            self.history['avg_fitness'].append(avg_fitness)
+            self.history['diversity'].append(diversity)
+            self.history['best_solutions'].append(self.population[0])
 
             if generation % 10 == 0:
-                print(f"Generation {generation}: Best Fitness = {best_fitness:.2f}, "
-                      f"Avg Fitness = {avg_fitness:.2f}")
+                print(f"Generation {generation}: Best={best_fitness:.2f}, "
+                      f"Avg={avg_fitness:.2f}, Diversity={diversity:.2f}")
 
             # Create new population
             new_population = []
-
-            # Elitism: Keep best solutions
             new_population.extend(self.population[:self.elite_size])
 
-            # Create rest of new population
             while len(new_population) < self.population_size:
-                # Select parents
                 parent1 = self.tournament_selection()
                 parent2 = self.tournament_selection()
-
-                # Create child through crossover
                 child_sequence = smart_crossover(parent1.chromosome,
                                                  parent2.chromosome,
                                                  self.problem)
+                child_sequence = swap_mutation(child_sequence, self.mutation_rate)
 
-                # Apply mutation
-                child_sequence = self.mutation(child_sequence)
-
-                # Create new chromosome with modified sequence
                 child = JobShopChromosome(self.problem)
                 child.chromosome = child_sequence
-                _ = child.decode_to_schedule()  # Set fitness
-
+                child.schedule = child.decode_to_schedule()
                 new_population.append(child)
 
             self.population = new_population
 
-        # Return best solution and history
         self.population.sort(key=lambda x: x.fitness)
-        return (self.population[0],
-                self.best_fitness_history,
-                self.avg_fitness_history)
+        return self.population[0], self.history

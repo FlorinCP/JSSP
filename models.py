@@ -2,8 +2,29 @@ from typing import List, Dict
 
 import numpy as np
 
-from job_shop_problem import JobShopProblem
 
+class JobShopProblem:
+    """
+    This class represents a Job Shop Scheduling Problem.
+    Think of it like managing a workshop where different jobs need to use different machines
+    in a specific order, like a car going through different stations in a repair shop.
+    """
+
+    def __init__(self):
+        # jobs_data stores our manufacturing instructions
+        # For each job, we have a list of tuples: (machine_number, time_needed)
+        # Example: [(0,3), (1,2)] means:
+        #   - First use machine 0 for 3 time units
+        #   - Then use machine 1 for 2 time units
+        self.jobs_data = [
+            [(0, 3), (1, 2), (2, 2)],  # Job 0's sequence of operations
+            [(0, 2), (2, 1), (1, 4)],  # Job 1's sequence of operations
+            [(1, 4), (2, 3)]           # Job 2's sequence of operations
+        ]
+
+        # Count how many jobs and machines we have
+        self.num_jobs = len(self.jobs_data)  # How many different jobs
+        self.num_machines = 3                # How many machines available
 
 class JobShopChromosome:
     """
@@ -119,3 +140,73 @@ class JobShopChromosome:
         self.fitness = max(job_available_time.values())
         print(f"\nFinal schedule completion time: {self.fitness}")
         return schedule
+
+
+class GAStatisticsAnalyzer:
+    """Analyzer for Genetic Algorithm statistics."""
+
+    @staticmethod
+    def calculate_statistics(history: Dict, best_solution: JobShopChromosome) -> Dict:
+        """Calculate detailed statistics from the GA run."""
+        stats = {
+            'best_fitness': best_solution.fitness,
+            'final_diversity': history['diversity'][-1],
+            'total_improvement': history['best_fitness'][0] - history['best_fitness'][-1],
+            'improvement_percentage': ((history['best_fitness'][0] - history['best_fitness'][-1]) /
+                                       history['best_fitness'][0] * 100),
+            'convergence_generation': None,
+            'average_improvement_rate': np.mean(np.diff(history['best_fitness'])),
+            'best_generation': np.argmin(history['best_fitness']),
+            'stagnant_generations': 0,
+            'final_schedule_makespan': max(
+                details['end'] for details in best_solution.schedule.values()
+            )
+        }
+
+        # Calculate convergence information
+        improvements = np.abs(np.diff(history['best_fitness']))
+        threshold = np.mean(improvements) * 0.01  # 1% of average improvement
+        converged_gens = np.where(improvements < threshold)[0]
+        if len(converged_gens) > 0:
+            stats['convergence_generation'] = converged_gens[0]
+
+        # Calculate stagnation information
+        stagnant_count = 0
+        for i in range(1, len(history['best_fitness'])):
+            if abs(history['best_fitness'][i] - history['best_fitness'][i - 1]) < 1e-6:
+                stagnant_count += 1
+            else:
+                stagnant_count = 0
+            stats['stagnant_generations'] = max(
+                stats['stagnant_generations'],
+                stagnant_count
+            )
+
+        return stats
+
+    @staticmethod
+    def print_statistics(stats: Dict):
+        """Print formatted statistics."""
+        print("\n" + "=" * 50)
+        print("FINAL STATISTICS")
+        print("=" * 50)
+
+        print("\nPerformance Metrics:")
+        print(f"Best Fitness Achieved: {stats['best_fitness']:.2f}")
+        print(f"Final Schedule Makespan: {stats['final_schedule_makespan']}")
+        print(f"Total Improvement: {stats['total_improvement']:.2f} " +
+              f"({stats['improvement_percentage']:.1f}%)")
+        print(f"Average Improvement Rate: {stats['average_improvement_rate']:.3f} per generation")
+
+        print("\nConvergence Analysis:")
+        if stats['convergence_generation'] is not None:
+            print(f"Convergence reached at generation: {stats['convergence_generation']}")
+        else:
+            print("Algorithm did not fully converge")
+        print(f"Best solution found in generation: {stats['best_generation']}")
+        print(f"Maximum stagnant generations: {stats['stagnant_generations']}")
+
+        print("\nDiversity Metrics:")
+        print(f"Final Population Diversity: {stats['final_diversity']:.2f}")
+
+        print("\n" + "=" * 50)
