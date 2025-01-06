@@ -1,6 +1,7 @@
 from typing import List, Dict
-
 import numpy as np
+
+from jsp_parser import JSPParser
 
 
 class JobShopProblem:
@@ -23,6 +24,39 @@ class JobShopProblem:
         self.num_jobs = len(self.jobs_data)
         self.num_machines = 6
 
+    def load_from_file(self, file_path: str, instance_name: str = None):
+        """
+        Load problem instance from a file.
+
+        Args:
+            file_path: Path to the file containing JSP instances
+            instance_name: Optional name of specific instance to load.
+                         If None, loads the first instance found.
+        """
+        with open(file_path, 'r') as f:
+            content = f.read()
+
+        instances = JSPParser.parse_file(content)
+
+        if not instances:
+            raise ValueError("No valid instances found in file")
+
+        if instance_name is None:
+            # Take first instance if none specified
+            instance = next(iter(instances.values()))
+        else:
+            if instance_name not in instances:
+                raise ValueError(f"Instance '{instance_name}' not found in file")
+            instance = instances[instance_name]
+
+        # Update problem attributes
+        self.jobs_data = instance.jobs_data
+        self.num_jobs = instance.num_jobs
+        self.num_machines = instance.num_machines
+        self.instance_name = instance.name
+        self.instance_description = instance.description
+
+
     def validate_solution(self, chromosome):
         """Validate if a chromosome represents a valid solution."""
         # Count operations per job
@@ -43,6 +77,12 @@ class JobShopProblem:
     def calculate_makespan(self, schedule: dict) -> int:
         """Calculate the total makespan of a schedule."""
         return max(details['end'] for details in schedule.values())
+
+    def __str__(self):
+        """String representation of the problem instance."""
+        return (f"Job Shop Problem Instance: {self.instance_name}\n"
+                f"Description: {self.instance_description}\n"
+                f"Jobs: {self.num_jobs}, Machines: {self.num_machines}")
 
 
 class JobShopChromosome:
@@ -131,71 +171,3 @@ class JobShopChromosome:
         return schedule
 
 
-class GAStatisticsAnalyzer:
-    """Analyzer for Genetic Algorithm statistics."""
-
-    @staticmethod
-    def calculate_statistics(history: Dict, best_solution: JobShopChromosome) -> Dict:
-        """Calculate detailed statistics from the GA run."""
-        stats = {
-            'best_fitness': best_solution.fitness,
-            'final_diversity': history['diversity'][-1],
-            'total_improvement': history['best_fitness'][0] - history['best_fitness'][-1],
-            'improvement_percentage': ((history['best_fitness'][0] - history['best_fitness'][-1]) /
-                                       history['best_fitness'][0] * 100),
-            'convergence_generation': None,
-            'average_improvement_rate': np.mean(np.diff(history['best_fitness'])),
-            'best_generation': np.argmin(history['best_fitness']),
-            'stagnant_generations': 0,
-            'final_schedule_makespan': max(
-                details['end'] for details in best_solution.schedule.values()
-            )
-        }
-
-        # Calculate convergence information
-        improvements = np.abs(np.diff(history['best_fitness']))
-        threshold = np.mean(improvements) * 0.01  # 1% of average improvement
-        converged_gens = np.where(improvements < threshold)[0]
-        if len(converged_gens) > 0:
-            stats['convergence_generation'] = converged_gens[0]
-
-        # Calculate stagnation information
-        stagnant_count = 0
-        for i in range(1, len(history['best_fitness'])):
-            if abs(history['best_fitness'][i] - history['best_fitness'][i - 1]) < 1e-6:
-                stagnant_count += 1
-            else:
-                stagnant_count = 0
-            stats['stagnant_generations'] = max(
-                stats['stagnant_generations'],
-                stagnant_count
-            )
-
-        return stats
-
-    @staticmethod
-    def print_statistics(stats: Dict):
-        """Print formatted statistics."""
-        print("\n" + "=" * 50)
-        print("FINAL STATISTICS")
-        print("=" * 50)
-
-        print("\nPerformance Metrics:")
-        print(f"Best Fitness Achieved: {stats['best_fitness']:.2f}")
-        print(f"Final Schedule Makespan: {stats['final_schedule_makespan']}")
-        print(f"Total Improvement: {stats['total_improvement']:.2f} " +
-              f"({stats['improvement_percentage']:.1f}%)")
-        print(f"Average Improvement Rate: {stats['average_improvement_rate']:.3f} per generation")
-
-        print("\nConvergence Analysis:")
-        if stats['convergence_generation'] is not None:
-            print(f"Convergence reached at generation: {stats['convergence_generation']}")
-        else:
-            print("Algorithm did not fully converge")
-        print(f"Best solution found in generation: {stats['best_generation']}")
-        print(f"Maximum stagnant generations: {stats['stagnant_generations']}")
-
-        print("\nDiversity Metrics:")
-        print(f"Final Population Diversity: {stats['final_diversity']:.2f}")
-
-        print("\n" + "=" * 50)
