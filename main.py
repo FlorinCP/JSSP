@@ -38,16 +38,28 @@ def main():
         analyzer = ParameterAnalyzer(args.input_file, args.output_dir)
 
         if args.instance:
+            import time
+
+            # Start measuring time
+            start_time = time.time()
+
             # Run analysis for specific instance
             print(f"\nRunning parameter analysis for instance: {args.instance}")
             results = analyzer.run_instance_analysis(args.instance)
             analysis = analyzer.analyze_results(results)
             summary_df = analyzer.save_analysis(results)
 
+            # Stop measuring time
+            elapsed_time = time.time() - start_time
+
             # Display summary
             print("\nParameter Comparison Summary:")
             print("=" * 80)
             print(summary_df.to_string())
+
+            # Print elapsed time
+            print(f"\nElapsed time: {elapsed_time:.2f} seconds")
+
 
         else:
             # Run analysis for multiple instances up to max_instances
