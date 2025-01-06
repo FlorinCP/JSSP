@@ -75,6 +75,7 @@ class JobShopSimulation:
             best_solution, history = ga.run()
 
             stats = GAStatisticsAnalyzer.calculate_statistics(history, best_solution)
+            print(stats)
             GAStatisticsAnalyzer.print_statistics(stats)
 
             self.create_and_save_plots(history, best_solution)
