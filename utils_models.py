@@ -19,6 +19,7 @@ class GAStatisticsAnalyzer:
             'best_fitness': best_solution.fitness,
             'final_diversity': history['diversity'][-1],
             'total_improvement': history['best_fitness'][0] - history['best_fitness'][-1],
+            "total_generations": len(history['best_fitness']),
             'improvement_percentage': ((history['best_fitness'][0] - history['best_fitness'][-1]) /
                                        history['best_fitness'][0] * 100),
             'convergence_generation': None,

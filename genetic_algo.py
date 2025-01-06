@@ -47,7 +47,7 @@ class GeneticAlgorithm:
         maintaining chromosome validity.
         """
         self.population = []
-        attempts_per_chromosome = 5  # Number of attempts for each chromosome
+        attempts_per_chromosome = 5
 
         for _ in range(self.population_size):
             chromosome = None
