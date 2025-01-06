@@ -101,10 +101,7 @@ class JobShopSimulation:
 
     def create_and_save_plots(self, history: Dict, best_solution: JobShopChromosome):
         """Create and save all plots."""
-        print("\nGenerating visualizations...")
 
-        # Plot and save fitness evolution
-        print("Creating fitness evolution plot...")
         fitness_fig = plot_fitness_evolution(history)
         fitness_fig.savefig(
             self.output_dir / 'fitness_evolution.png',
@@ -112,8 +109,6 @@ class JobShopSimulation:
             bbox_inches='tight'
         )
 
-        # Plot and save diversity
-        print("Creating diversity plot...")
         diversity_fig = plot_population_diversity(history)
         diversity_fig.savefig(
             self.output_dir / 'population_diversity.png',
@@ -121,8 +116,6 @@ class JobShopSimulation:
             bbox_inches='tight'
         )
 
-        # Plot and save schedule
-        print("Creating schedule plot...")
         schedule_fig = plot_schedule(
             best_solution,
         )
@@ -132,7 +125,6 @@ class JobShopSimulation:
             bbox_inches='tight'
         )
 
-        # Show all plots
         plt.show()
         
 

@@ -50,111 +50,44 @@ def plot_fitness_evolution(history: Dict) -> plt.Figure:
     return fig
 
 
-# def plot_population_diversity(history: Dict) -> plt.Figure:
-#     """Plot population diversity over generations."""
-#     plt.style.use('default')
-#     fig = plt.figure(figsize=(12, 8))
-#     ax = plt.gca()
-#     generations = range(len(history['diversity']))
-#
-#     # Plot diversity curve
-#     ax.plot(generations, history['diversity'],
-#             color='#9b59b6', linewidth=2, label='Population Diversity')
-#
-#     # Calculate statistics
-#     max_div = max(history['diversity'])
-#     min_div = min(history['diversity'])
-#     avg_div = np.mean(history['diversity'])
-#     final_div = history['diversity'][-1]
-#
-#     # Add statistics box
-#     stats_text = (f'Maximum Diversity: {max_div:.2f}\n'
-#                   f'Average Diversity: {avg_div:.2f}\n'
-#                   f'Minimum Diversity: {min_div:.2f}\n'
-#                   f'Final Diversity: {final_div:.2f}')
-#
-#     plt.text(0.02, 0.98, stats_text,
-#              transform=ax.transAxes,
-#              bbox=dict(facecolor='white', alpha=0.8, edgecolor='#9b59b6'),
-#              verticalalignment='top',
-#              fontsize=10)
-#
-#     plt.title('Population Diversity Over Generations', fontsize=14, pad=20)
-#     plt.xlabel('Generation', fontsize=12)
-#     plt.ylabel('Diversity Score', fontsize=12)
-#     plt.grid(True, linestyle='--', alpha=0.7)
-#     plt.legend(loc='upper right', fontsize=10)
-#     plt.tight_layout()
-#
-#     return fig
-
 def plot_population_diversity(history: Dict) -> plt.Figure:
-    """Plot population diversity over generations with detailed analysis."""
+    """Plot population diversity over generations."""
     plt.style.use('default')
     fig = plt.figure(figsize=(12, 8))
     ax = plt.gca()
     generations = range(len(history['diversity']))
-    diversity_values = history['diversity']
 
-    # Plot main diversity curve
-    ax.plot(generations, diversity_values,
+    # Plot diversity curve
+    ax.plot(generations, history['diversity'],
             color='#9b59b6', linewidth=2, label='Population Diversity')
 
-    # Add rolling average for trend visualization
-    window_size = min(10, len(diversity_values))
-    rolling_avg = np.convolve(diversity_values, np.ones(window_size) / window_size, mode='valid')
-    rolling_gens = generations[window_size - 1:]
-    ax.plot(rolling_gens, rolling_avg,
-            color='#2ecc71', linewidth=2, linestyle='--',
-            label=f'{window_size}-Generation Moving Average')
+    # Calculate statistics
+    max_div = max(history['diversity'])
+    min_div = min(history['diversity'])
+    avg_div = np.mean(history['diversity'])
+    final_div = history['diversity'][-1]
 
-    # Calculate comprehensive statistics
-    max_div = max(diversity_values)
-    min_div = min(diversity_values)
-    avg_div = np.mean(diversity_values)
-    final_div = diversity_values[-1]
+    # Add statistics box
+    stats_text = (f'Maximum Diversity: {max_div:.2f}\n'
+                  f'Average Diversity: {avg_div:.2f}\n'
+                  f'Minimum Diversity: {min_div:.2f}\n'
+                  f'Final Diversity: {final_div:.2f}')
 
-    # Calculate rate of diversity change
-    div_changes = np.diff(diversity_values)
-    avg_change_rate = np.mean(div_changes)
-
-    # Find significant points
-    max_div_gen = np.argmax(diversity_values)
-    min_div_gen = np.argmin(diversity_values)
-
-    # Calculate diversity stability
-    stability = np.std(diversity_values)
-
-    # Add marker points for maximum and minimum diversity
-    ax.scatter(max_div_gen, max_div, color='#2ecc71', s=100, zorder=5, label='Maximum Diversity')
-    ax.scatter(min_div_gen, min_div, color='#e74c3c', s=100, zorder=5, label='Minimum Diversity')
-
-    # Add comprehensive statistics box
-    stats_text = (
-        f'Diversity Statistics:\n'
-        f'Maximum: {max_div:.2f} (Gen {max_div_gen})\n'
-        f'Minimum: {min_div:.2f} (Gen {min_div_gen})\n'
-        f'Average: {avg_div:.2f}\n'
-        f'Final: {final_div:.2f}\n'
-        f'Stability (σ): {stability:.2f}\n'
-        f'Avg Rate of Change: {avg_change_rate:.3f}/gen'
-    )
-
-    plt.text(0.02, 0.02, stats_text,
+    plt.text(0.02, 0.98, stats_text,
              transform=ax.transAxes,
              bbox=dict(facecolor='white', alpha=0.8, edgecolor='#9b59b6'),
              verticalalignment='top',
              fontsize=10)
 
-    # Complete plot configuration
-    plt.title('Population Diversity Analysis Over Generations', fontsize=14, pad=20)
+    plt.title('Population Diversity Over Generations', fontsize=14, pad=20)
     plt.xlabel('Generation', fontsize=12)
     plt.ylabel('Diversity Score', fontsize=12)
     plt.grid(True, linestyle='--', alpha=0.7)
-    plt.legend(loc='center right', fontsize=10, bbox_to_anchor=(1.15, 0.5))
+    plt.legend(loc='upper right', fontsize=10)
     plt.tight_layout()
 
     return fig
+
 
 def plot_schedule(chromosome: JobShopChromosome) -> plt.Figure:
     """Create Gantt chart of the schedule."""
