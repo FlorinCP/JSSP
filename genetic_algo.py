@@ -1,8 +1,10 @@
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List
 from copy import deepcopy
 import numpy as np
 
-from genetic_operators import smart_crossover, swap_mutation
+from genetic_operators import (smart_crossover, order_crossover,
+                               swap_mutation, inversion_mutation, scramble_mutation,
+                               tournament_selection, roulette_wheel_selection)
 from models import JobShopProblem, JobShopChromosome
 
 
@@ -12,13 +14,19 @@ class GeneticAlgorithm:
                  generations: int = 100,
                  elite_size: int = 2,
                  tournament_size: int = 5,
-                 mutation_rate: float = 0.1):
+                 mutation_rate: float = 0.1,
+                 selection_method: str = 'tournament',  # 'tournament' or 'roulette'
+                 crossover_method: str = 'smart',  # 'smart' or 'order'
+                 mutation_method: str = 'swap'):  # 'swap', 'inversion', or 'scramble'
         self.problem = JobShopProblem()
         self.population_size = population_size
         self.generations = generations
         self.elite_size = elite_size
         self.tournament_size = tournament_size
         self.mutation_rate = mutation_rate
+        self.selection_method = selection_method
+        self.crossover_method = crossover_method
+        self.mutation_method = mutation_method
         self.population = []
         self.history = {
             'best_fitness': [],
@@ -42,22 +50,6 @@ class GeneticAlgorithm:
             if i < 5:
                 print(f"Chromosome {i}: {chromosome.chromosome}")
 
-    def tournament_selection(self) -> JobShopChromosome:
-        """Select parent using tournament selection.
-
-        Returns:
-            JobShopChromosome: The selected parent chromosome
-        """
-        # Randomly select tournament_size chromosomes from the population
-        tournament = np.random.choice(
-            self.population,
-            size=self.tournament_size,
-            replace=False  # Don't select the same chromosome twice
-        )
-
-        # Return the chromosome with the best fitness from the tournament
-        return min(tournament, key=lambda x: x.fitness)
-
     def calculate_diversity(self) -> float:
         """Calculate population diversity using average chromosome difference."""
         total_diff = 0
@@ -71,6 +63,36 @@ class GeneticAlgorithm:
                 total_diff += diff
                 comparisons += 1
         return total_diff / comparisons if comparisons > 0 else 0
+
+    def select_parent(self) -> JobShopChromosome:
+        """Select parent using specified selection method."""
+        if self.selection_method == 'tournament':
+            return tournament_selection(self)
+        elif self.selection_method == 'roulette':
+            fitness_values = [chr.fitness for chr in self.population]
+            return roulette_wheel_selection(self.population, fitness_values)
+        else:
+            raise ValueError(f"Unknown selection method: {self.selection_method}")
+
+    def apply_mutation(self, chromosome: List[int]) -> List[int]:
+        """Apply specified mutation method."""
+        if self.mutation_method == 'swap':
+            return swap_mutation(chromosome, self.mutation_rate)
+        elif self.mutation_method == 'inversion':
+            return inversion_mutation(chromosome, self.mutation_rate)
+        elif self.mutation_method == 'scramble':
+            return scramble_mutation(chromosome, self.mutation_rate)
+        else:
+            raise ValueError(f"Unknown mutation method: {self.mutation_method}")
+
+    def apply_crossover(self, parent1: JobShopChromosome, parent2: JobShopChromosome) -> List[int]:
+        """Apply specified crossover method."""
+        if self.crossover_method == 'smart':
+            return smart_crossover(parent1.chromosome, parent2.chromosome, self.problem)
+        elif self.crossover_method == 'order':
+            return order_crossover(parent1.chromosome, parent2.chromosome, self.problem)
+        else:
+            raise ValueError(f"Unknown crossover method: {self.crossover_method}")
 
     def evaluate_population(self):
         """Evaluate all chromosomes in the population."""
@@ -143,17 +165,15 @@ class GeneticAlgorithm:
 
             # Fill rest of population
             while len(new_population) < self.population_size:
-                # Select parents
-                parent1 = self.tournament_selection()
-                parent2 = self.tournament_selection()
+                # Select parents using selected method
+                parent1 = self.select_parent()
+                parent2 = self.select_parent()
 
-                # Create child
-                child_sequence = smart_crossover(
-                    parent1.chromosome,
-                    parent2.chromosome,
-                    self.problem
-                )
-                child_sequence = swap_mutation(child_sequence, self.mutation_rate)
+                # Create child using selected crossover method
+                child_sequence = self.apply_crossover(parent1, parent2)
+
+                # Apply selected mutation method
+                child_sequence = self.apply_mutation(child_sequence)
 
                 # Create and evaluate new chromosome
                 child = JobShopChromosome(self.problem)

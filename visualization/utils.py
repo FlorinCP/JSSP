@@ -10,6 +10,7 @@ def setup_plot_style():
     plt.rcParams['axes.titlesize'] = 12
     plt.rcParams['axes.labelsize'] = 10
 
+
 def get_color_palette(num_colors: int) -> List[str]:
     """Get colorblind-friendly color palette."""
     base_colors = [
@@ -18,4 +19,3 @@ def get_color_palette(num_colors: int) -> List[str]:
     ]
     colors = base_colors * (num_colors // len(base_colors) + 1)
     return colors[:num_colors]
-
