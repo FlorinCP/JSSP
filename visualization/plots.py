@@ -7,6 +7,7 @@ from models import JobShopChromosome
 
 def plot_fitness_evolution(history: Dict) -> plt.Figure:
     """Plot fitness evolution over generations."""
+
     plt.style.use('default')
     fig = plt.figure(figsize=(12, 8))
     ax = plt.gca()
@@ -90,7 +91,7 @@ def plot_population_diversity(history: Dict) -> plt.Figure:
 
 def plot_schedule(chromosome: JobShopChromosome) -> plt.Figure:
     """Create Gantt chart of the schedule."""
-    # Ensure schedule is decoded
+
     schedule = chromosome.decode_to_schedule()
     num_machines = chromosome.problem.num_machines
 
@@ -101,17 +102,15 @@ def plot_schedule(chromosome: JobShopChromosome) -> plt.Figure:
     # Calculate makespan by finding the latest end time of any operation
     makespan = max(details['end'] for details in schedule.values())
 
-    # Use a colorblind-friendly palette
     colors = ['#2ecc71', '#3498db', '#e74c3c', '#f1c40f', '#9b59b6',
               '#1abc9c', '#e67e22', '#34495e', '#7f8c8d', '#16a085']
+
     while len(colors) < num_machines:
         colors.extend(colors)
     colors = colors[:num_machines]
 
-    # Track job positions
     job_positions = {}
 
-    # Sort operations by machine and start time
     sorted_ops = sorted(schedule.items(), key=lambda x: (x[1]['machine'], x[1]['start']))
 
     for (job_id, op_idx), details in sorted_ops:
@@ -137,10 +136,8 @@ def plot_schedule(chromosome: JobShopChromosome) -> plt.Figure:
     plt.yticks(range(num_machines), [f'M{i}' for i in range(num_machines)])
     plt.grid(True, axis='x', linestyle='--', alpha=0.7)
 
-    # Set x-axis limits explicitly to the makespan
     plt.xlim(0, makespan)
 
-    # Improve legend
     handles, labels = ax.get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
     legend = plt.legend(by_label.values(), by_label.keys(),

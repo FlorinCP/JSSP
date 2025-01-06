@@ -62,22 +62,12 @@ class JobShopChromosome:
         Example: If Job 0 needs 3 operations and Job 1 needs 2 operations,
         we might create: [0,1,0,1,0]
         """
-        # Start with an empty list
         operations = []
 
-        # For each job in our problem...
         for job_id, job_operations in enumerate(self.problem.jobs_data):
-            # How many operations does this job need?
-            num_operations = len(job_operations)
+            operations.extend([job_id] * len(job_operations))
 
-            # Add this job's ID that many times to our list
-            operations.extend([job_id] * num_operations)
-            # print(f"Added {num_operations} operations for Job {job_id}")
-            # print(f"Current operations list: {operations}")
-
-        # Shuffle the list randomly to create our chromosome
         np.random.shuffle(operations)
-        # print(f"Final chromosome after shuffling: {operations}")
         return operations
 
     def validate_chromosome(self) -> bool:
@@ -106,19 +96,13 @@ class JobShopChromosome:
         Returns a dictionary telling us when each operation starts and ends.
         """
 
-        # First, make sure our chromosome is valid
         if not self.validate_chromosome():
             raise ValueError("Invalid chromosome!")
 
-        # These dictionaries help us track timing:
         machine_available_time = {}  # When will each machine be free?
         job_available_time = {}  # When will each job be ready for its next operation?
         schedule = {}  # Our final schedule (what we'll return)
 
-        # print("\nDecoding chromosome into schedule:")
-        # print(f"Chromosome sequence: {self.chromosome}")
-
-        # Process each job in our sequence
         for position, job_id in enumerate(self.chromosome):
             # Figure out which operation this is for this job
             # (how many times have we seen this job so far?)
@@ -134,28 +118,16 @@ class JobShopChromosome:
             start_time = max(machine_ready, job_ready)  # Start at later of these times
             end_time = start_time + processing_time  # Calculate when we'll finish
 
-            # Print detailed information about what we're scheduling
-            # print(f"\nScheduling Job {job_id}, Operation {operation_index}:")
-            # print(f"  Using Machine {machine_id} for {processing_time} time units")
-            # print(f"  Machine ready at: {machine_ready}")
-            # print(f"  Job ready at: {job_ready}")
-            # print(f"  Will start at: {start_time}")
-            # print(f"  Will finish at: {end_time}")
+            machine_available_time[machine_id] = end_time
+            job_available_time[job_id] = end_time
 
-            # Update our tracking information
-            machine_available_time[machine_id] = end_time  # Machine will be busy until end_time
-            job_available_time[job_id] = end_time  # Job can't continue until end_time
-
-            # Store this operation in our schedule
             schedule[(job_id, operation_index)] = {
                 'machine': machine_id,
                 'start': start_time,
                 'end': end_time
             }
 
-        # The fitness is the total time needed (when does the last operation finish?)
         self.fitness = max(job_available_time.values())
-        # print(f"\nFinal schedule completion time: {self.fitness}")
         return schedule
 
 
