@@ -87,87 +87,93 @@ class JobShopProblem:
 
 class JobShopChromosome:
     """
-    This class represents one possible solution to our scheduling problem.
-    Think of it like a DNA sequence that tells us the order to process our jobs.
+    Represents a solution to the Job Shop Scheduling Problem.
+    Each chromosome is a sequence of operations that defines the order
+    in which jobs should be processed on machines.
     """
-
     def __init__(self, problem: JobShopProblem):
         self.problem = problem
         self.chromosome = self.create_random_chromosome()
+        self.schedule = None
         self.fitness = float('inf')
 
     def create_random_chromosome(self) -> List[int]:
         """
-        Creates a random valid sequence of jobs.
-        Example: If Job 0 needs 3 operations and Job 1 needs 2 operations,
-        we might create: [0,1,0,1,0]
+        Creates a valid random sequence of jobs.
+        This improved version ensures all jobs get their required number of operations
+        while maintaining randomness in the sequence.
         """
+        # Create a list of all required operations
         operations = []
-
         for job_id, job_operations in enumerate(self.problem.jobs_data):
+            # Add each job_id the number of times it needs operations
             operations.extend([job_id] * len(job_operations))
 
+        # Shuffle the operations randomly
         np.random.shuffle(operations)
         return operations
 
     def validate_chromosome(self) -> bool:
         """
-        Checks if our chromosome is valid (has correct number of operations for each job).
-        Returns True if valid, False if not.
+        Validates that the chromosome represents a feasible solution.
+        A chromosome is valid if each job appears exactly the number of times
+        it needs operations.
         """
-        # Count how many times each job appears
+        # Count operations per job
         job_counts = {}
         for job_id in self.chromosome:
             job_counts[job_id] = job_counts.get(job_id, 0) + 1
 
-        # Check against how many operations each job should have
+        # Check against required operations for each job
         for job_id, job_operations in enumerate(self.problem.jobs_data):
-            required_ops = len(job_operations)  # How many operations job should have
-            actual_ops = job_counts.get(job_id, 0)  # How many it has in chromosome
+            required_ops = len(job_operations)
+            actual_ops = job_counts.get(job_id, 0)
             if required_ops != actual_ops:
-                print(f"Invalid chromosome! Job {job_id} needs {required_ops} "
-                      f"operations but has {actual_ops}")
                 return False
         return True
 
     def decode_to_schedule(self) -> Dict:
         """
-        Converts our chromosome (sequence of jobs) into an actual schedule.
-        Returns a dictionary telling us when each operation starts and ends.
+        Converts the chromosome (operation sequence) into an actual schedule.
+        Returns a dictionary with timing details for each operation.
         """
-
         if not self.validate_chromosome():
-            raise ValueError("Invalid chromosome!")
+            raise ValueError("Invalid chromosome detected during scheduling!")
 
-        machine_available_time = {}  # When will each machine be free?
-        job_available_time = {}  # When will each job be ready for its next operation?
-        schedule = {}  # Our final schedule (what we'll return)
+        # Track when each machine and job will be available
+        machine_available_time = {}  # When will each machine be free
+        job_available_time = {}      # When will each job be ready for next operation
+        schedule = {}                # Final schedule to return
 
+        # Track how many operations we've scheduled for each job
+        job_op_counts = {job_id: 0 for job_id in range(self.problem.num_jobs)}
+
+        # Process each operation in the sequence
         for position, job_id in enumerate(self.chromosome):
-            # Figure out which operation this is for this job
-            # (how many times have we seen this job so far?)
-            job_occurrences = self.chromosome[:position + 1].count(job_id)
-            operation_index = job_occurrences - 1
+            # Get the next operation for this job
+            operation_index = job_op_counts[job_id]
+            job_op_counts[job_id] += 1
 
-            # Get the details for this operation
-            machine_id, processing_time = self.problem.jobs_data[job_id][operation_index]
+            # Get machine and processing time for this operation
+            machine_id, processing_time = self.problem.get_operation_details(job_id, operation_index)
 
-            # When can we start this operation?
-            machine_ready = machine_available_time.get(machine_id, 0)  # When machine is free
-            job_ready = job_available_time.get(job_id, 0)  # When job is ready
-            start_time = max(machine_ready, job_ready)  # Start at later of these times
-            end_time = start_time + processing_time  # Calculate when we'll finish
+            # Calculate earliest possible start time
+            machine_ready = machine_available_time.get(machine_id, 0)
+            job_ready = job_available_time.get(job_id, 0)
+            start_time = max(machine_ready, job_ready)
+            end_time = start_time + processing_time
 
+            # Update availability times
             machine_available_time[machine_id] = end_time
             job_available_time[job_id] = end_time
 
+            # Record in schedule
             schedule[(job_id, operation_index)] = {
                 'machine': machine_id,
                 'start': start_time,
                 'end': end_time
             }
 
+        # Calculate fitness (makespan) as the maximum completion time
         self.fitness = max(job_available_time.values())
         return schedule
-
-

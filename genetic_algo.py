@@ -41,12 +41,44 @@ class GeneticAlgorithm:
         self.best_fitness_ever = float('inf')
 
     def initialize_population(self):
-        """Create initial random population."""
-
+        """
+        Initialize population with improved reliability and error handling.
+        This version ensures we can create the full population size while
+        maintaining chromosome validity.
+        """
         self.population = []
-        for i in range(self.population_size):
-            chromosome = JobShopChromosome(self.problem)
+        attempts_per_chromosome = 5  # Number of attempts for each chromosome
+
+        for _ in range(self.population_size):
+            chromosome = None
+            for attempt in range(attempts_per_chromosome):
+                try:
+                    new_chromosome = JobShopChromosome(self.problem)
+                    if new_chromosome.validate_chromosome():
+                        chromosome = new_chromosome
+                        break
+                except Exception as e:
+                    continue
+
+            if chromosome is None:
+                print(f"Warning: Failed to create valid chromosome after {attempts_per_chromosome} attempts")
+                # Create a basic valid chromosome as fallback
+                chromosome = self.create_fallback_chromosome()
+
             self.population.append(chromosome)
+
+    def create_fallback_chromosome(self) -> JobShopChromosome:
+        """
+        Creates a basic valid chromosome when random creation fails.
+        This ensures we always have a valid solution, even if not optimal.
+        """
+        chromosome = JobShopChromosome(self.problem)
+        # Create a simple sequence that ensures each job gets its operations
+        operations = []
+        for job_id, job_operations in enumerate(self.problem.jobs_data):
+            operations.extend([job_id] * len(job_operations))
+        chromosome.chromosome = operations
+        return chromosome
 
     def calculate_diversity(self) -> float:
         """
@@ -105,19 +137,22 @@ class GeneticAlgorithm:
             raise ValueError(f"Unknown crossover method: {self.crossover_method}")
 
     def evaluate_population(self):
-        """Evaluate all chromosomes in the population."""
-
-        fitness_values = []
+        """
+        Evaluate all chromosomes in the population with improved error handling.
+        """
+        valid_chromosomes = []
         for chromosome in self.population:
-            chromosome.schedule = chromosome.decode_to_schedule()
-            fitness_values.append(chromosome.fitness)
+            try:
+                chromosome.schedule = chromosome.decode_to_schedule()
+                valid_chromosomes.append(chromosome)
+            except Exception as e:
+                print(f"Warning: Failed to evaluate chromosome: {str(e)}")
+                new_chromosome = self.create_fallback_chromosome()
+                new_chromosome.schedule = new_chromosome.decode_to_schedule()
+                valid_chromosomes.append(new_chromosome)
 
-            if chromosome.fitness < self.best_fitness_ever:
-                self.best_fitness_ever = chromosome.fitness
-                self.best_solution_ever = deepcopy(chromosome)
-                self.best_solution_ever.schedule = self.best_solution_ever.decode_to_schedule()
-
-        return fitness_values
+        self.population = valid_chromosomes
+        return [chr.fitness for chr in self.population]
 
     def update_history(self, generation: int):
         self.population.sort(key=lambda x: x.fitness)

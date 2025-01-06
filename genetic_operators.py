@@ -9,13 +9,25 @@ from models import JobShopChromosome
 # Selection methods
 def roulette_wheel_selection(population: List, fitness_values: List[float]) -> any:
     """
-        Roulette wheel selection based on fitness probabilities.
-        This selection method is biased towards the best individuals.
+    1. Handles cases where all fitness values are equal
+    2. Prevents division by zero
+    3. Normalizes probabilities
     """
+    if not population or not fitness_values:
+        raise ValueError("Empty population or fitness values")
+
+    # Handle case where all fitness values are equal
+    if len(set(fitness_values)) == 1:
+        return random.choice(population)
 
     # Convert fitness to selection probability (lower fitness = higher probability)
-    total_fitness = sum(1 / f for f in fitness_values)  # Using inverse since we minimize
-    probabilities = [(1 / f) / total_fitness for f in fitness_values]
+    min_fitness = min(fitness_values)
+    adjusted_fitness = [f - min_fitness + 1e-10 for f in fitness_values]  # Prevent division by zero
+    total_fitness = sum(1 / f for f in adjusted_fitness)
+    probabilities = [(1 / f) / total_fitness for f in adjusted_fitness]
+
+    # Normalize probabilities to ensure they sum to 1
+    probabilities = [p / sum(probabilities) for p in probabilities]
 
     # Select based on probabilities
     return random.choices(population, probabilities, k=1)[0]
@@ -23,19 +35,29 @@ def roulette_wheel_selection(population: List, fitness_values: List[float]) -> a
 
 def tournament_selection(self) -> JobShopChromosome:
     """
-    Select parent using tournament selection.
+    Select parent using tournament selection with dynamic sizing.
 
-    This method randomly selects a subset of chromosomes from the population
-    (the tournament) and returns the chromosome with the best fitness value
-    from this subset.
+    1. Ensures tournament size is never larger than population
+    2. Handles edge cases gracefully
+    3. Uses dynamic tournament sizing if needed
 
     Returns:
         JobShopChromosome: The selected parent chromosome
     """
+    # Ensure tournament size is valid
+    effective_tournament_size = min(
+        self.tournament_size,
+        len(self.population) - 1  # Leave room for at least one other competitor
+    )
+
+    if effective_tournament_size < 2:
+        # If we can't do a proper tournament, just return random individual
+        return np.random.choice(self.population)
+
     # Randomly select tournament_size chromosomes from the population
     tournament = np.random.choice(
         self.population,
-        size=self.tournament_size,
+        size=effective_tournament_size,
         replace=False  # Don't select the same chromosome twice
     )
 

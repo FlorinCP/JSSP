@@ -12,6 +12,7 @@ from utils_models import GAStatisticsAnalyzer, GAResultSerializer
 from visualization.plots import plot_fitness_evolution, plot_schedule
 from datetime import datetime
 
+
 class ExperimentRunner:
     """Handles running experiments on Job Shop Problem instances."""
 
@@ -22,6 +23,7 @@ class ExperimentRunner:
                  generations: int = 100,
                  elite_size: int = 2,
                  tournament_size: int = 5,
+                 max_instances: int = None,
                  mutation_rate: float = 0.1):
         """
         Initialize the experiment runner with GA parameters.
@@ -38,6 +40,7 @@ class ExperimentRunner:
         self.input_file = input_file
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.max_instances = max_instances
 
         self.ga_params = {
             'population_size': population_size,
@@ -47,31 +50,24 @@ class ExperimentRunner:
             'mutation_rate': mutation_rate
         }
 
-        # Initialize result storage
         self.results = {}
 
     def run_single_instance(self, instance_name: str) -> Dict:
         """Run GA on a single instance and return results."""
         print(f"\nProcessing instance: {instance_name}")
 
-        # Initialize problem and load instance
         problem = JobShopProblem()
         problem.load_from_file(self.input_file, instance_name)
-        print(f"Loaded problem: {problem}")
 
-        # Create and run GA
         ga = GeneticAlgorithm(**self.ga_params)
         ga.problem = problem
         best_solution, history = ga.run()
 
-        # Calculate statistics
         stats = GAStatisticsAnalyzer.calculate_statistics(history, best_solution)
 
-        # Create visualizations
         instance_dir = self.output_dir / instance_name
         instance_dir.mkdir(parents=True, exist_ok=True)
 
-        # Save fitness evolution plot
         fitness_fig = plot_fitness_evolution(history)
         fitness_fig.savefig(
             instance_dir / 'fitness_evolution.png',
@@ -79,7 +75,6 @@ class ExperimentRunner:
             bbox_inches='tight'
         )
 
-        # Save schedule plot
         schedule_fig = plot_schedule(best_solution)
         schedule_fig.savefig(
             instance_dir / 'best_schedule.png',
@@ -101,17 +96,11 @@ class ExperimentRunner:
         }
 
     def run_all_instances(self) -> Dict[str, Dict]:
-        """Run genetic algorithm optimization on all job shop problem instances in the input file."""
-        # First, let's analyze the input file structure to understand what we're working with
+        """Run genetic algorithm optimization on job shop problem instances."""
         print("\nAnalyzing input file structure...")
         with open(self.input_file, 'r') as f:
             content = f.read()
 
-        # Perform diagnostic analysis of the file content
-        file_stats = JSPParser.analyze_input_file(self.input_file)
-        print(f"\nExpecting to find approximately {file_stats['num_instances']} instances")
-
-        # Parse all instances from the file using our improved JSPParser
         print("\nParsing instances from file...")
         instances = JSPParser.parse_file(content)
 
@@ -119,31 +108,32 @@ class ExperimentRunner:
             print("\nNo valid instances were found in the file. Please check the file format.")
             return {}
 
-        print(f"\nSuccessfully parsed {len(instances)} instances:")
-        for name in instances:
+        instance_names = list(instances.keys())
+        if self.max_instances is not None:
+            instance_names = instance_names[:self.max_instances]
+            print(f"\nProcessing first {self.max_instances} instances:")
+        else:
+            print("\nProcessing all instances:")
+
+        for name in instance_names:
             print(f"  - {name}")
 
-        # Process each valid instance with the genetic algorithm
-        print("\nRunning genetic algorithm on each instance...")
         results = {}
-        total_instances = len(instances)
+        total_instances = len(instance_names)
 
-        for idx, instance_name in enumerate(instances, 1):
+        for idx, instance_name in enumerate(instance_names, 1):
             try:
                 print(f"\nProcessing instance {idx}/{total_instances}: {instance_name}")
-                # Run the genetic algorithm on this instance
                 results[instance_name] = self.run_single_instance(instance_name)
 
-                # Print a success message with the achieved fitness
+                # Print success message with achieved fitness
                 best_fitness = results[instance_name]['stats']['best_fitness']
                 print(f"✓ Successfully optimized {instance_name} - Best makespan: {best_fitness}")
 
             except Exception as e:
-                # If something goes wrong, log the error but continue with other instances
                 print(f"✗ Error processing {instance_name}: {str(e)}")
                 results[instance_name] = {'error': str(e)}
 
-        # Provide a summary of the results
         successful_runs = sum(1 for r in results.values() if 'error' not in r)
         print(f"\nCompleted processing {total_instances} instances:")
         print(f"  - Successful: {successful_runs}")
@@ -201,6 +191,8 @@ def main():
     parser.add_argument('--elite-size', type=int, default=2)
     parser.add_argument('--tournament-size', type=int, default=5)
     parser.add_argument('--mutation-rate', type=float, default=0.1)
+    parser.add_argument('--max-instances', type=int,
+                        help='Maximum number of instances to process (default: all)')
 
     args = parser.parse_args()
 
@@ -211,14 +203,13 @@ def main():
         generations=args.generations,
         elite_size=args.elite_size,
         tournament_size=args.tournament_size,
-        mutation_rate=args.mutation_rate
+        mutation_rate=args.mutation_rate,
+        max_instances=args.max_instances
     )
 
     if args.instance:
-        # Run single instance
         results = {args.instance: runner.run_single_instance(args.instance)}
     else:
-        # Run all instances
         results = runner.run_all_instances()
 
     runner.save_results(results)
