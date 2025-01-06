@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Any
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -159,3 +159,29 @@ class JobShopSimulation:
         except Exception as e:
             print(f"\nError during simulation: {str(e)}")
             raise
+
+
+class GAResultSerializer:
+    """Handles serialization of Genetic Algorithm results to JSON-compatible format."""
+
+    @staticmethod
+    def convert_to_serializable(obj: Any) -> Any:
+        """Convert various types to JSON-serializable formats."""
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, dict):
+            return {key: GAResultSerializer.convert_to_serializable(value)
+                    for key, value in obj.items()}
+        elif isinstance(obj, list):
+            return [GAResultSerializer.convert_to_serializable(item)
+                    for item in obj]
+        return obj
+
+    @staticmethod
+    def prepare_results(results: Dict) -> Dict:
+        """Process the entire results dictionary to ensure JSON compatibility."""
+        return GAResultSerializer.convert_to_serializable(results)

@@ -37,7 +37,7 @@ class JSPParser:
 
     @staticmethod
     def _parse_instance_block(block: str) -> Optional[JSPInstance]:
-        """Parse a single instance block."""
+        """Parse a single instance block with enhanced text handling."""
         # Split into lines and clean
         lines = [line.strip() for line in block.split('\n') if line.strip()]
 
@@ -52,14 +52,15 @@ class JSPParser:
             dims_line_idx = -1
             description_lines = []
 
-            for idx, line in enumerate(lines[1:], 1):  # Start after instance name
+            for idx, line in enumerate(lines[1:], 1):
                 # Skip separator lines
-                if all(c in '+ ' for c in line):
+                if all(c in '+-' for c in line):
                     continue
 
-                # Check if this is the dimensions line
-                numbers = [int(s) for s in line.split() if s.isdigit()]
-                if len(numbers) == 2:
+                # Extract all numbers from the line
+                numbers = [int(n) for n in re.findall(r'\b\d+\b', line)]
+
+                if len(numbers) == 2:  # Found dimensions line
                     dims_line_idx = idx
                     break
                 elif not line.startswith('+'):  # Collect description lines
@@ -69,7 +70,7 @@ class JSPParser:
                 raise ValueError(f"Could not find dimensions line for instance {name}")
 
             # Parse dimensions
-            num_jobs, num_machines = map(int, lines[dims_line_idx].split())
+            num_jobs, num_machines = map(int, re.findall(r'\b\d+\b', lines[dims_line_idx]))
 
             # Get job data lines
             data_lines = []
@@ -78,17 +79,18 @@ class JSPParser:
             while current_line < len(lines) and len(data_lines) < num_jobs:
                 line = lines[current_line]
                 # Skip separator lines and ensure line has numbers
-                if not all(c in '+ ' for c in line) and any(c.isdigit() for c in line):
-                    data_lines.append(line)
+                if not all(c in '+-' for c in line) and any(c.isdigit() for c in line):
+                    # Extract all numbers from the line
+                    numbers = [int(n) for n in re.findall(r'\b\d+\b', line)]
+                    if numbers:  # Only add lines that contain numbers
+                        data_lines.append(numbers)
                 current_line += 1
 
-            # Parse job data
+            # Create job operations from the parsed numbers
             jobs_data = []
             for line in data_lines:
-                numbers = [int(x) for x in line.split()]
                 # Create pairs of (machine, time)
-                ops = [(numbers[i], numbers[i + 1])
-                       for i in range(0, len(numbers), 2)]
+                ops = [(line[i], line[i + 1]) for i in range(0, len(line), 2)]
                 jobs_data.append(ops)
 
             return JSPInstance(

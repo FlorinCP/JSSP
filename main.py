@@ -1,7 +1,6 @@
 import argparse
 from pathlib import Path
 import json
-from datetime import datetime
 
 import pandas as pd
 from typing import Dict
@@ -9,9 +8,9 @@ from typing import Dict
 from genetic_algo import GeneticAlgorithm
 from jsp_parser import JSPParser
 from models import JobShopProblem
-from utils_models import GAStatisticsAnalyzer
+from utils_models import GAStatisticsAnalyzer, GAResultSerializer
 from visualization.plots import plot_fitness_evolution, plot_schedule
-
+from datetime import datetime
 
 class ExperimentRunner:
     """Handles running experiments on Job Shop Problem instances."""
@@ -153,12 +152,17 @@ class ExperimentRunner:
         return results
 
     def save_results(self, results: Dict):
-        """Save experiment results to files."""
+        """Save experiment results to files with proper type conversion."""
+
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # Convert results to JSON-serializable format
+        serializer = GAResultSerializer()
+        serializable_results = serializer.prepare_results(results)
 
         # Save full results as JSON
         with open(self.output_dir / f'results_{timestamp}.json', 'w') as f:
-            json.dump(results, f, indent=2)
+            json.dump(serializable_results, f, indent=2)
 
         # Create summary DataFrame
         summary_data = []
@@ -168,12 +172,13 @@ class ExperimentRunner:
 
             summary_data.append({
                 'Instance': instance_name,
-                'Jobs': result['problem_info']['num_jobs'],
-                'Machines': result['problem_info']['num_machines'],
-                'Best Makespan': result['stats']['best_fitness'],
-                'Improvement %': result['stats']['improvement_percentage'],
-                'Convergence Gen': result['stats']['convergence_generation'],
-                'Final Diversity': result['stats']['final_diversity']
+                'Jobs': int(result['problem_info']['num_jobs']),  # Convert np.int64 to int
+                'Machines': int(result['problem_info']['num_machines']),
+                'Best Makespan': float(result['stats']['best_fitness']),  # Convert np.float64 to float
+                'Improvement %': float(result['stats']['improvement_percentage']),
+                'Convergence Gen': int(result['stats']['convergence_generation']) if result['stats'][
+                                                                                         'convergence_generation'] is not None else None,
+                'Final Diversity': float(result['stats']['final_diversity'])
             })
 
         summary_df = pd.DataFrame(summary_data)
