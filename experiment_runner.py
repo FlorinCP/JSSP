@@ -8,6 +8,7 @@ from genetic_algo import GeneticAlgorithm
 from jsp_parser import JSPParser
 from models import JobShopProblem
 from utils_models import GAStatisticsAnalyzer, GAResultSerializer
+from visualization.ga_visualizer import create_visualization
 from visualization.plots import plot_fitness_evolution, plot_schedule, plot_population_diversity
 from datetime import datetime
 
@@ -135,16 +136,15 @@ class ExperimentRunner:
         return results
 
     def save_results(self, results: Dict):
-        """Save experiment results to files with proper type conversion."""
-
+        """Save experiment results to files and generate visualizations."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        serializer = GAResultSerializer()
-        serializable_results = serializer.prepare_results(results)
+        # Save JSON results
+        results_file = self.output_dir / f'results_{timestamp}.json'
+        with open(results_file, 'w') as f:
+            json.dump(results, f, indent=2)
 
-        with open(self.output_dir / f'results_{timestamp}.json', 'w') as f:
-            json.dump(serializable_results, f, indent=2)
-
+        # Save summary CSV
         summary_data = []
         for instance_name, result in results.items():
             if 'error' in result:
@@ -156,16 +156,20 @@ class ExperimentRunner:
                 'Machines': int(result['problem_info']['num_machines']),
                 'Best Makespan': float(result['stats']['best_fitness']),
                 'Improvement %': float(result['stats']['improvement_percentage']),
-                'Convergence Gen': int(result['stats']['convergence_generation']) if result['stats'][
-                                                                                         'convergence_generation'] is not None else None,
+                'Convergence Gen': int(result['stats']['convergence_generation'])
+                if result['stats']['convergence_generation'] is not None else None,
                 'Final Diversity': float(result['stats']['final_diversity'])
             })
 
         summary_df = pd.DataFrame(summary_data)
         summary_df.to_csv(self.output_dir / f'summary_{timestamp}.csv', index=False)
 
+        # Generate visualizations
+        viz_dir = self.output_dir / 'visualizations'
+        create_visualization(str(results_file), str(viz_dir))
+
         # Print summary
         print("\nExperiment Summary:")
         print("=" * 80)
         print(summary_df.to_string(index=False))
-        print("\nResults saved to:", self.output_dir)
+        print("\nResults and visualizations saved to:", self.output_dir)
