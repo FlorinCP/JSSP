@@ -1,0 +1,32 @@
+Parameter Set Analysis Report
+==================================================
+
+1. Overall Best Performing Parameter Sets
+----------------------------------------
+balanced_large: 18.52% average improvement
+larger_population: 18.29% average improvement
+aggressive_mutation: 18.08% average improvement
+more_generations: 16.66% average improvement
+baseline: 16.50% average improvement
+large_tournament: 16.37% average improvement
+
+2. Performance by Instance Size
+----------------------------------------
+Small instances:
+  Best parameter set: balanced_large
+  Average improvement: 18.36%
+
+Medium instances:
+  Best parameter set: aggressive_mutation
+  Average improvement: 15.11%
+
+Large instances:
+  Best parameter set: aggressive_mutation
+  Average improvement: 19.41%
+
+3. Key Findings
+----------------------------------------
+Fastest converging parameter set: large_tournament
+Average convergence generation: 24.5
+
+Correlation between population size and improvement: 0.151
