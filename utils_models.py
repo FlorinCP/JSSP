@@ -54,6 +54,7 @@ class GAStatisticsAnalyzer:
         stats = {'best_fitness': best_solution.fitness, 'final_diversity': history['diversity'][-1],
                  'total_improvement': history['best_fitness'][0] - history['best_fitness'][-1],
                  "total_generations": len(history['best_fitness']),
+                 "executions": len(history['best_fitness']),
                  'improvement_percentage': ((history['best_fitness'][0] - history['best_fitness'][-1]) /
                                             history['best_fitness'][0] * 100),
                  'average_improvement_rate': np.mean(np.diff(history['best_fitness'])),
@@ -63,17 +64,6 @@ class GAStatisticsAnalyzer:
                  ), 'convergence_generation': GAStatisticsAnalyzer.calculate_convergence_generation(
                 history['best_fitness']
             )}
-
-        stagnant_count = 0
-        for i in range(1, len(history['best_fitness'])):
-            if abs(history['best_fitness'][i] - history['best_fitness'][i - 1]) < 1e-6:
-                stagnant_count += 1
-            else:
-                stagnant_count = 0
-            stats['stagnant_generations'] = max(
-                stats['stagnant_generations'],
-                stagnant_count
-            )
 
         return stats
 

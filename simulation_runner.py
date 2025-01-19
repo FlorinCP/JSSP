@@ -2,10 +2,11 @@ from pathlib import Path
 import json
 
 import pandas as pd
-from typing import Dict
+from typing import Dict, Optional
 
 from constants import parameter_sets
 from genetic_algo import GeneticAlgorithm
+from jsp_parser import JSPParser
 from models import JobShopProblem
 from utils_models import GAStatisticsAnalyzer, GAResultSerializer
 from visualization.plots import plot_fitness_evolution, plot_schedule, plot_population_diversity
@@ -24,9 +25,9 @@ def _create_parameter_comparison(results: Dict, output_dir: Path):
             "Best Fitness": param_results["stats"]["best_fitness"],
             "Improvement %": param_results["stats"]["improvement_percentage"],
             "Convergence Gen": param_results["stats"]["convergence_generation"],
-            "Stagnation Gen": param_results["stats"]["stagnant_generations"],
             "Final Diversity": param_results["stats"]["final_diversity"],
             "Population Size": param_results["parameters"]["population_size"],
+            "Executions": param_results["stats"]["executions"],
             "Generations": param_results["parameters"]["generations"],
             "Mutation Rate": param_results["parameters"]["mutation_rate"]
         })
@@ -41,6 +42,38 @@ def _create_parameter_comparison(results: Dict, output_dir: Path):
     print(comparison_df.to_string(index=False))
 
 
+def plot_individual_charts(history, best_solution, instance_dir, name = None):
+    if name :
+        param_dir = instance_dir / name
+        param_dir.mkdir(parents=True, exist_ok=True)
+    else:
+        param_dir = instance_dir
+
+    # Save evolution plot
+    fitness_fig = plot_fitness_evolution(history)
+    fitness_fig.savefig(
+        param_dir / 'fitness_evolution.png',
+        dpi=300,
+        bbox_inches='tight'
+    )
+
+    # Save schedule plot
+    schedule_fig = plot_schedule(best_solution)
+    schedule_fig.savefig(
+        param_dir / 'best_schedule.png',
+        dpi=300,
+        bbox_inches='tight'
+    )
+
+    # Save diversity plot
+    diversity_fig = plot_population_diversity(history)
+    diversity_fig.savefig(
+        param_dir / 'population_diversity.png',
+        dpi=300,
+        bbox_inches='tight'
+    )
+
+
 class SimulationRunner:
 
     def __init__(self,
@@ -51,12 +84,14 @@ class SimulationRunner:
                  elite_size: int = 2,
                  tournament_size: int = 5,
                  max_instances: int = None,
+                 visualize: bool = False,
                  mutation_rate: float = 0.1):
 
         self.input_file = input_file
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.max_instances = max_instances
+        self.visualize = visualize
 
         self.ga_params = {
             'population_size': population_size,
@@ -67,6 +102,52 @@ class SimulationRunner:
         }
 
         self.results = {}
+
+    def run(self, instance_name: Optional[str] = None, use_multiple_params: bool = False) -> Dict:
+        """
+        Unified method to run simulations with given configuration.
+
+        Args:
+            instance_name: Optional specific instance to run. If None, runs all instances.
+            use_multiple_params: Whether to use multiple parameter sets for optimization.
+
+        Returns:
+            Dict containing the results of the simulation(s).
+        """
+        if instance_name:
+            results = self._run_instance(instance_name, use_multiple_params)
+            results_dict = {instance_name: results}
+        else:
+            results_dict = self._run_all_instances(use_multiple_params)
+
+        self.save_results(results_dict)
+        return results_dict
+
+    def _run_instance(self, instance_name: str, use_multiple_params: bool) -> Dict:
+        """Internal method to run a single instance."""
+        if use_multiple_params:
+            return self.run_multiple_parameter_sets(instance_name)
+        return self.run_single_instance(instance_name)
+
+    def _run_all_instances(self, use_multiple_params: bool) -> Dict:
+        """Internal method to run all instances."""
+        with open(self.input_file, 'r') as f:
+            content = f.read()
+
+        instances = JSPParser.parse_file(content)
+
+        if self.max_instances:
+            instances = dict(list(instances.items())[:self.max_instances])
+
+        results = {}
+        for instance in instances:
+            try:
+                results[instance] = self._run_instance(instance, use_multiple_params)
+            except Exception as e:
+                print(f"Error processing instance {instance}: {str(e)}")
+                results[instance] = {'error': str(e)}
+
+        return results
 
     def run_single_instance(self, instance_name: str) -> Dict:
         """Run GA on a single instance and return results."""
@@ -84,26 +165,8 @@ class SimulationRunner:
         instance_dir = self.output_dir / instance_name
         instance_dir.mkdir(parents=True, exist_ok=True)
 
-        fitness_fig = plot_fitness_evolution(history)
-        fitness_fig.savefig(
-            instance_dir / 'fitness_evolution.png',
-            dpi=300,
-            bbox_inches='tight'
-        )
-
-        schedule_fig = plot_schedule(best_solution)
-        schedule_fig.savefig(
-            instance_dir / 'best_schedule.png',
-            dpi=300,
-            bbox_inches='tight'
-        )
-
-        diversity_fig = plot_population_diversity(history)
-        diversity_fig.savefig(
-            instance_dir / 'population_diversity.png',
-            dpi=300,
-            bbox_inches='tight'
-        )
+        if self.visualize:
+            plot_individual_charts(history, best_solution,instance_dir, instance_name)
 
         return {
             'stats': stats,
@@ -228,36 +291,14 @@ class SimulationRunner:
                 }
             }
 
-            # Create plots for this parameter set
-            param_dir = instance_dir / params["name"]
-            param_dir.mkdir(parents=True, exist_ok=True)
-
-            # Save evolution plot
-            fitness_fig = plot_fitness_evolution(history)
-            fitness_fig.savefig(
-                param_dir / 'fitness_evolution.png',
-                dpi=300,
-                bbox_inches='tight'
-            )
-
-            # Save schedule plot
-            schedule_fig = plot_schedule(best_solution)
-            schedule_fig.savefig(
-                param_dir / 'best_schedule.png',
-                dpi=300,
-                bbox_inches='tight'
-            )
-
-            # Save diversity plot
-            diversity_fig = plot_population_diversity(history)
-            diversity_fig.savefig(
-                param_dir / 'population_diversity.png',
-                dpi=300,
-                bbox_inches='tight'
-            )
+            # Save plots
+            if self.visualize:
+                plot_individual_charts(history, best_solution, instance_dir, params["name"])
 
             print(f"Completed {params['name']} - Best makespan: {stats['best_fitness']}")
 
         _create_parameter_comparison(results, instance_dir)
 
         return results
+
+

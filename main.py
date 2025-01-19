@@ -9,11 +9,13 @@ def main():
     parser.add_argument('--instance', help='Specific instance to run (optional)')
     parser.add_argument('--output-dir', default='results', help='Output directory')
     parser.add_argument('--population-size', type=int, default=100)
+    parser.add_argument('--visualize', action='store_true', help='Render charts')
     parser.add_argument('--generations', type=int, default=100)
     parser.add_argument('--elite-size', type=int, default=2)
     parser.add_argument('--tournament-size', type=int, default=5)
     parser.add_argument('--mutation-rate', type=float, default=0.1)
-    parser.add_argument('--multiple-params', action='store_true', help='Run multiple parameter configurations')
+    parser.add_argument('--multiple-params', action='store_true',
+                        help='Run multiple parameter configurations')
     parser.add_argument('--max-instances', type=int,
                         help='Maximum number of instances to process (default: all)')
 
@@ -30,15 +32,7 @@ def main():
         max_instances=args.max_instances
     )
 
-    if args.instance:
-        if args.multiple_params:
-            results = {args.instance: runner.run_multiple_parameter_sets(args.instance)}
-        else:
-            results = {args.instance: runner.run_single_instance(args.instance)}
-    else:
-        results = runner.run_all_instances()
-
-    runner.save_results(results)
+    runner.run(args.instance, args.multiple_params)
 
 
 if __name__ == "__main__":
