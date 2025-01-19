@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Tuple, Dict, Any
+from typing import Tuple, Dict, Any, List, Optional
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -9,36 +9,61 @@ from models import JobShopChromosome
 from visualization.plots import plot_fitness_evolution, plot_population_diversity, plot_schedule
 
 
+
+
 class GAStatisticsAnalyzer:
     """Analyzer for Genetic Algorithm statistics."""
 
     @staticmethod
+    def calculate_convergence_generation(history: List[float]) -> Optional[int]:
+        """
+        Calculate the generation where meaningful convergence occurred.
+        Uses a rolling window to detect sustained lack of improvement.
+
+        Args:
+            history: List of best fitness values per generation
+
+        Returns:
+            The generation number where convergence occurred, or None if no convergence detected
+        """
+        window_size = 10
+        min_improvements = 0.001
+        required_stagnant_windows = 2
+
+        fitness_history = np.array(history)
+
+        improvements = np.abs(np.diff(fitness_history))
+
+        stagnant_windows = 0
+        for i in range(len(improvements) - window_size):
+            window = improvements[i:i + window_size]
+            avg_improvement = np.mean(window)
+
+            if avg_improvement < min_improvements:
+                stagnant_windows += 1
+                if stagnant_windows >= required_stagnant_windows:
+                    return i
+            else:
+                stagnant_windows = 0
+
+        return None
+
+    @staticmethod
     def calculate_statistics(history: Dict, best_solution: JobShopChromosome) -> Dict:
         """Calculate detailed statistics from the GA run."""
-        stats = {
-            'best_fitness': best_solution.fitness,
-            'final_diversity': history['diversity'][-1],
-            'total_improvement': history['best_fitness'][0] - history['best_fitness'][-1],
-            "total_generations": len(history['best_fitness']),
-            'improvement_percentage': ((history['best_fitness'][0] - history['best_fitness'][-1]) /
-                                       history['best_fitness'][0] * 100),
-            'convergence_generation': None,
-            'average_improvement_rate': np.mean(np.diff(history['best_fitness'])),
-            'best_generation': np.argmin(history['best_fitness']),
-            'stagnant_generations': 0,
-            'final_schedule_makespan': max(
-                details['end'] for details in best_solution.schedule.values()
-            )
-        }
+        stats = {'best_fitness': best_solution.fitness, 'final_diversity': history['diversity'][-1],
+                 'total_improvement': history['best_fitness'][0] - history['best_fitness'][-1],
+                 "total_generations": len(history['best_fitness']),
+                 'improvement_percentage': ((history['best_fitness'][0] - history['best_fitness'][-1]) /
+                                            history['best_fitness'][0] * 100),
+                 'average_improvement_rate': np.mean(np.diff(history['best_fitness'])),
+                 'best_generation': np.argmin(history['best_fitness']), 'stagnant_generations': 0,
+                 'final_schedule_makespan': max(
+                     details['end'] for details in best_solution.schedule.values()
+                 ), 'convergence_generation': GAStatisticsAnalyzer.calculate_convergence_generation(
+                history['best_fitness']
+            )}
 
-        # Calculate convergence information
-        improvements = np.abs(np.diff(history['best_fitness']))
-        threshold = np.mean(improvements) * 0.01  # 1% of average improvement
-        converged_gens = np.where(improvements < threshold)[0]
-        if len(converged_gens) > 0:
-            stats['convergence_generation'] = converged_gens[0]
-
-        # Calculate stagnation information
         stagnant_count = 0
         for i in range(1, len(history['best_fitness'])):
             if abs(history['best_fitness'][i] - history['best_fitness'][i - 1]) < 1e-6:
@@ -78,7 +103,6 @@ class GAStatisticsAnalyzer:
         print(f"Final Population Diversity: {stats['final_diversity']:.2f}")
 
         print("\n" + "=" * 50)
-
 
 class JobShopSimulation:
     """Main simulation class for Job Shop Scheduling."""

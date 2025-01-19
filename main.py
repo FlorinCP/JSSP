@@ -1,6 +1,6 @@
 import argparse
 
-from experiment_runner import ExperimentRunner
+from simulation_runner import SimulationRunner
 
 
 def main():
@@ -13,12 +13,13 @@ def main():
     parser.add_argument('--elite-size', type=int, default=2)
     parser.add_argument('--tournament-size', type=int, default=5)
     parser.add_argument('--mutation-rate', type=float, default=0.1)
+    parser.add_argument('--multiple-params', action='store_true', help='Run multiple parameter configurations')
     parser.add_argument('--max-instances', type=int,
                         help='Maximum number of instances to process (default: all)')
 
     args = parser.parse_args()
 
-    runner = ExperimentRunner(
+    runner = SimulationRunner(
         input_file=args.input_file,
         output_dir=args.output_dir,
         population_size=args.population_size,
@@ -30,7 +31,10 @@ def main():
     )
 
     if args.instance:
-        results = {args.instance: runner.run_single_instance(args.instance)}
+        if args.multiple_params:
+            results = {args.instance: runner.run_multiple_parameter_sets(args.instance)}
+        else:
+            results = {args.instance: runner.run_single_instance(args.instance)}
     else:
         results = runner.run_all_instances()
 
