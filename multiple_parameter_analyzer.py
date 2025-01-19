@@ -8,8 +8,8 @@ import pandas as pd
 from genetic_algo import GeneticAlgorithm
 from models import JobShopProblem
 
-
-class ParameterAnalyzer:
+# multiple parameter run
+class MultipleParameterAnalyzer:
     """
     Handles running and analyzing genetic algorithm experiments with different parameters.
     This class helps organize multiple runs and collect meaningful metrics for comparison.

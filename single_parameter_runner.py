@@ -12,7 +12,9 @@ from visualization.ga_visualizer import create_visualization
 from visualization.plots import plot_fitness_evolution, plot_schedule, plot_population_diversity
 from datetime import datetime
 
-class ExperimentRunner:
+
+# single parameter run
+class SingleParameterRunner:
 
     def __init__(self,
                  input_file: str,

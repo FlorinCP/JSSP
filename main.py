@@ -1,11 +1,15 @@
 import argparse
 from pathlib import Path
-from parameter_analyzer import ParameterAnalyzer  # Make sure to import the new analyzer
+
+from multiple_parameter_analyzer import MultipleParameterAnalyzer
+from single_parameter_runner import SingleParameterRunner
 
 
 def main():
-    # Set up command line argument parser with enhanced options
+
     parser = argparse.ArgumentParser(description='Run Job Shop Problem experiments with parameter analysis')
+
+    # Add arguments for input file and output directory
     parser.add_argument('input_file', help='Path to JSP instances file')
     parser.add_argument('--instance', help='Specific instance to run (optional)')
     parser.add_argument('--output-dir', default='results', help='Output directory')
@@ -29,30 +33,26 @@ def main():
 
     args = parser.parse_args()
 
-    # Create output directory
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Run parameter analysis for multiple parameter combinations
     if args.analyze_params:
-        # Use the parameter analyzer for multiple parameter combinations
-        analyzer = ParameterAnalyzer(args.input_file, args.output_dir)
+        analyzer = MultipleParameterAnalyzer(args.input_file, args.output_dir)
 
+        # Run single instance analysis
         if args.instance:
             import time
 
-            # Start measuring time
             start_time = time.time()
 
-            # Run analysis for specific instance
             print(f"\nRunning parameter analysis for instance: {args.instance}")
             results = analyzer.run_instance_analysis(args.instance)
             analysis = analyzer.analyze_results(results)
             summary_df = analyzer.save_analysis(results)
 
-            # Stop measuring time
             elapsed_time = time.time() - start_time
 
-            # Display summary
             print("\nParameter Comparison Summary:")
             print("=" * 80)
             print(summary_df.to_string())
@@ -61,8 +61,8 @@ def main():
             print(f"\nElapsed time: {elapsed_time:.2f} seconds")
 
 
+        # Run analysis for multiple instances up to max_instances
         else:
-            # Run analysis for multiple instances up to max_instances
             instances_to_process = analyzer.get_available_instances()
             if args.max_instances:
                 instances_to_process = instances_to_process[:args.max_instances]
@@ -78,11 +78,9 @@ def main():
                 print(summary_df.to_string())
                 print("\n")
 
+    # Run single parameter run
     else:
-        # Use the original ExperimentRunner for single parameter runs
-        from experiment_runner import ExperimentRunner
-
-        runner = ExperimentRunner(
+        runner = SingleParameterRunner(
             input_file=args.input_file,
             output_dir=args.output_dir,
             population_size=args.population_size,
@@ -93,6 +91,7 @@ def main():
             max_instances=args.max_instances
         )
 
+        # run single instance with predefined parameters
         if args.instance:
             results = {args.instance: runner.run_single_instance(args.instance)}
         else:

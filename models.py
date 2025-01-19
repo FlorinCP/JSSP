@@ -8,7 +8,6 @@ class JobShopProblem:
     """Job Shop Scheduling Problem definition."""
 
     def __init__(self):
-        # This is a larger problem instance with 6 jobs and 6 machines
         self.jobs_data = [
             [(0, 5), (1, 4), (2, 4), (3, 3), (4, 6), (5, 3), (6, 5), (7, 4), (8, 3), (9, 4)],  # Job 0
             [(1, 6), (0, 5), (3, 4), (2, 3), (5, 5), (4, 4), (7, 5), (6, 6), (9, 3), (8, 4)],  # Job 1
@@ -140,7 +139,6 @@ class JobShopChromosome:
         if not self.validate_chromosome():
             raise ValueError("Invalid chromosome detected during scheduling!")
 
-        # Track when each machine and job will be available
         machine_available_time = {}  # When will each machine be free
         job_available_time = {}      # When will each job be ready for next operation
         schedule = {}                # Final schedule to return
