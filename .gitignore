@@ -23,4 +23,4 @@ TestResults.xml
 /.idea
 /__pycache__
 *.pyc
-/results
+/overall_results

@@ -84,7 +84,7 @@ class SimulationRunner:
                  elite_size: int = 2,
                  tournament_size: int = 5,
                  max_instances: int = None,
-                 visualize: bool = False,
+                 visualize: bool = True,
                  mutation_rate: float = 0.1):
 
         self.input_file = input_file

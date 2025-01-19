@@ -80,7 +80,7 @@ def main():
     output_dir.mkdir(exist_ok=True)
 
     # Process all JSON files in current directory
-    for input_file in Path("./results").glob("*.json"):
+    for input_file in Path("overall_results").glob("*.json"):
         output_file = output_dir / f"processed_{input_file.name}"
         print(f"\nProcessing {input_file}...")
         process_results_file(str(input_file), str(output_file))
