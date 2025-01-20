@@ -7,7 +7,7 @@ from genetic_operators import (smart_crossover, order_crossover,
                                tournament_selection, roulette_wheel_selection)
 from models import JobShopProblem, JobShopChromosome
 
-MAX_STAGNANT_GENERATIONS_STOP = 20
+MAX_STAGNANT_GENERATIONS_STOP = 30
 
 
 class GeneticAlgorithm:
