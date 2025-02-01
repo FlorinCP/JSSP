@@ -1,0 +1,9 @@
+{
+  "abz5": {
+    "stats": {
+      "best_fitness": 1386,
+      "final_diversity": 45.26,
+      "total_improvement": 241,
+      "total_generations": 82,
+      "improvement_percentage": 14.812538414259373,
+      "convergence_generation": 
