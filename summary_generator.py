@@ -263,7 +263,7 @@ class ParameterAnalyzer:
 
 
 def main():
-    analyzer = ParameterAnalyzer("overall_results")
+    analyzer = ParameterAnalyzer("old/overall_results")
 
     print("Loading and processing data...")
     analyzer.load_all_data()

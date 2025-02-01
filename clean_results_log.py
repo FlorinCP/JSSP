@@ -76,11 +76,11 @@ def process_results_file(input_path: str, output_path: str):
 def main():
     """Main function to run the script."""
     # Create results directory if it doesn't exist
-    output_dir = Path("processed_results")
+    output_dir = Path("old/processed_results")
     output_dir.mkdir(exist_ok=True)
 
     # Process all JSON files in current directory
-    for input_file in Path("overall_results").glob("*.json"):
+    for input_file in Path("old/overall_results").glob("*.json"):
         output_file = output_dir / f"processed_{input_file.name}"
         print(f"\nProcessing {input_file}...")
         process_results_file(str(input_file), str(output_file))

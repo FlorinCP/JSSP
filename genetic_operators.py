@@ -1,8 +1,6 @@
 import random
 from typing import List
-
 import numpy as np
-
 from models import JobShopChromosome
 
 
@@ -47,7 +45,7 @@ def tournament_selection(self) -> JobShopChromosome:
     # Ensure tournament size is valid
     effective_tournament_size = min(
         self.tournament_size,
-        len(self.population) - 1  # Leave room for at least one other competitor
+        len(self.population) - 1
     )
 
     if effective_tournament_size < 2:
