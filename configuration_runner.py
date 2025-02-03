@@ -69,7 +69,6 @@ class ConfigurationRunner:
         Returns the results including statistics and history.
         """
 
-        # Create GA parameters for this configuration
         ga_params = self.base_params.copy()
         ga_params.update({
             'selection_method': selection,

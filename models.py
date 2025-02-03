@@ -8,38 +8,15 @@ class JobShopProblem:
     """Job Shop Scheduling Problem definition."""
 
     def __init__(self):
-        # This is a larger problem instance with 6 jobs and 6 machines
-        self.jobs_data = [
-            [(0, 5), (1, 4), (2, 4), (3, 3), (4, 6), (5, 3), (6, 5), (7, 4), (8, 3), (9, 4)],  # Job 0
-            [(1, 6), (0, 5), (3, 4), (2, 3), (5, 5), (4, 4), (7, 5), (6, 6), (9, 3), (8, 4)],  # Job 1
-            [(2, 4), (1, 5), (0, 5), (4, 4), (3, 5), (6, 4), (5, 5), (8, 5), (7, 4), (9, 5)],  # Job 2
-            [(3, 5), (2, 6), (1, 4), (5, 3), (4, 5), (7, 4), (6, 5), (9, 4), (8, 5), (0, 4)],  # Job 3
-            [(4, 3), (3, 4), (2, 5), (6, 4), (5, 4), (8, 3), (7, 5), (0, 5), (9, 4), (1, 5)],  # Job 4
-            [(5, 4), (4, 5), (3, 4), (7, 3), (6, 5), (9, 4), (8, 4), (1, 5), (0, 4), (2, 3)],  # Job 5
-            [(6, 5), (5, 4), (4, 3), (8, 4), (7, 5), (0, 5), (9, 4), (2, 3), (1, 4), (3, 5)],  # Job 6
-            [(7, 4), (6, 5), (5, 4), (9, 3), (8, 4), (1, 5), (0, 4), (3, 4), (2, 5), (4, 4)],  # Job 7
-            [(8, 3), (7, 4), (6, 5), (0, 4), (9, 5), (2, 4), (1, 3), (4, 5), (3, 4), (5, 5)],  # Job 8
-            [(9, 5), (8, 4), (7, 3), (1, 5), (0, 4), (3, 5), (2, 4), (5, 3), (4, 4), (6, 5)]  # Job 9
-        ]
+        self.jobs_data = []
         self.num_jobs = len(self.jobs_data)
         self.num_machines = 6
 
     def load_from_file(self, file_path: str, instance_name: str = None):
-        """
-        Load problem instance from a file.
-
-        Args:
-            file_path: Path to the file containing JSP instances
-            instance_name: Optional name of specific instance to load.
-                         If None, loads the first instance found.
-        """
         with open(file_path, 'r') as f:
             content = f.read()
 
         instances = JSPParser.parse_file(content)
-
-        if not instances:
-            raise ValueError("No valid instances found in file")
 
         if instance_name is None:
             # Take first instance if none specified
@@ -167,13 +144,11 @@ class JobShopChromosome:
             machine_available_time[machine_id] = end_time
             job_available_time[job_id] = end_time
 
-            # Record in schedule
             schedule[(job_id, operation_index)] = {
                 'machine': machine_id,
                 'start': start_time,
                 'end': end_time
             }
 
-        # Calculate fitness (makespan) as the maximum completion time
         self.fitness = max(job_available_time.values())
         return schedule

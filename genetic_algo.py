@@ -2,12 +2,11 @@ from typing import Tuple, Dict, List
 from copy import deepcopy
 import numpy as np
 
+from constants import MAX_STAGNANT_GENERATIONS_STOP, STARTING_GENERATION_TO_CHECK_STAGNATION
 from genetic_operators import (
     swap_mutation, inversion_mutation,
     tournament_selection, roulette_wheel_selection, ppx_crossover, jox_crossover)
 from models import JobShopProblem, JobShopChromosome
-
-MAX_STAGNANT_GENERATIONS_STOP = 20
 
 
 class GeneticAlgorithm:
@@ -61,25 +60,7 @@ class GeneticAlgorithm:
                 except Exception as e:
                     continue
 
-            if chromosome is None:
-                print(f"Warning: Failed to create valid chromosome after {attempts_per_chromosome} attempts")
-                # Create a basic valid chromosome as fallback
-                chromosome = self.create_fallback_chromosome()
-
             self.population.append(chromosome)
-
-    def create_fallback_chromosome(self) -> JobShopChromosome:
-        """
-        Creates a basic valid chromosome when random creation fails.
-        This ensures we always have a valid solution, even if not optimal.
-        """
-        chromosome = JobShopChromosome(self.problem)
-        # Create a simple sequence that ensures each job gets its operations
-        operations = []
-        for job_id, job_operations in enumerate(self.problem.jobs_data):
-            operations.extend([job_id] * len(job_operations))
-        chromosome.chromosome = operations
-        return chromosome
 
     def calculate_diversity(self) -> float:
         """
@@ -112,8 +93,6 @@ class GeneticAlgorithm:
         elif self.selection_method == 'roulette':
             fitness_values = [chr.fitness for chr in self.population]
             return roulette_wheel_selection(self.population, fitness_values)
-        else:
-            raise ValueError(f"Unknown selection method: {self.selection_method}")
 
     def apply_mutation(self, chromosome: List[int]) -> List[int]:
         """Apply specified mutation method."""
@@ -122,8 +101,6 @@ class GeneticAlgorithm:
             return swap_mutation(chromosome, self.mutation_rate)
         elif self.mutation_method == 'inversion':
             return inversion_mutation(chromosome, self.mutation_rate)
-        else:
-            raise ValueError(f"Unknown mutation method: {self.mutation_method}")
 
     def apply_crossover(self, parent1: JobShopChromosome, parent2: JobShopChromosome) -> List[int]:
         """Apply specified crossover method."""
@@ -132,8 +109,6 @@ class GeneticAlgorithm:
             return ppx_crossover(parent1.chromosome, parent2.chromosome, self.problem)
         elif self.crossover_method == 'jox':
             return jox_crossover(parent1.chromosome, parent2.chromosome, self.problem)
-        else:
-            raise ValueError(f"Unknown crossover method: {self.crossover_method}")
 
     def evaluate_population(self):
         """
@@ -146,9 +121,6 @@ class GeneticAlgorithm:
                 valid_chromosomes.append(chromosome)
             except Exception as e:
                 print(f"Warning: Failed to evaluate chromosome: {str(e)}")
-                new_chromosome = self.create_fallback_chromosome()
-                new_chromosome.schedule = new_chromosome.decode_to_schedule()
-                valid_chromosomes.append(new_chromosome)
 
         self.population = valid_chromosomes
         return [chr.fitness for chr in self.population]
@@ -180,14 +152,14 @@ class GeneticAlgorithm:
 
     def check_early_stopping(self, generation: int) -> bool:
         """Check if the algorithm should stop early due to lack of improvement."""
-        if generation > 20:
+        if generation > STARTING_GENERATION_TO_CHECK_STAGNATION:
             stagnant_generations = 0
-            for i in range(-20, 0):
+            for i in range(-STARTING_GENERATION_TO_CHECK_STAGNATION, 0):
                 if self.history['best_fitness'][i] == self.best_fitness_ever:
                     stagnant_generations += 1
 
             if stagnant_generations == MAX_STAGNANT_GENERATIONS_STOP:
-                print("\nEarly stopping: No improvement for 20 generations")
+                print(f"\nEarly stopping: No improvement for {MAX_STAGNANT_GENERATIONS_STOP} generations")
                 return True
         return False
 

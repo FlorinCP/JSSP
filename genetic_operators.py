@@ -32,7 +32,6 @@ def roulette_wheel_selection(population: List, fitness_values: List[float]) -> a
     # Select based on probabilities
     return random.choices(population, probabilities, k=1)[0]
 
-
 def tournament_selection(self) -> JobShopChromosome:
     """
     Select parent using tournament selection with dynamic sizing.
@@ -79,7 +78,6 @@ def swap_mutation(chromosome: List[int], mutation_rate: float) -> List[int]:
 
     return chromosome
 
-
 def inversion_mutation(chromosome: List[int], mutation_rate: float) -> List[int]:
     """Inversion mutation operator - reverses a subsequence of the chromosome."""
     if random.random() < mutation_rate:
@@ -120,7 +118,6 @@ def ppx_crossover(parent1: List[int], parent2: List[int], problem) -> List[int]:
             current_idx += 1
 
     return child
-
 
 def jox_crossover(parent1: List[int], parent2: List[int], problem) -> List[int]:
     size = len(parent1)
