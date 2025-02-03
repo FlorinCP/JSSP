@@ -44,7 +44,7 @@ class ConfigurationRunner:
 
         self.operators = {
             'selection': ['tournament', 'roulette'],
-            'crossover': ['ppx', 'jox'],
+            'crossover': ['ppx', 'simple'],
             'mutation': ['swap', 'inversion']
         }
 

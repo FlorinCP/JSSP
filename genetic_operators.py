@@ -33,34 +33,13 @@ def roulette_wheel_selection(population: List, fitness_values: List[float]) -> a
     return random.choices(population, probabilities, k=1)[0]
 
 def tournament_selection(self) -> JobShopChromosome:
-    """
-    Select parent using tournament selection with dynamic sizing.
 
-    1. Ensures tournament size is never larger than population
-    2. Handles edge cases gracefully
-    3. Uses dynamic tournament sizing if needed
-
-    Returns:
-        JobShopChromosome: The selected parent chromosome
-    """
-    # Ensure tournament size is valid
-    effective_tournament_size = min(
-        self.tournament_size,
-        len(self.population) - 1  # Leave room for at least one other competitor
-    )
-
-    if effective_tournament_size < 2:
-        # If we can't do a proper tournament, just return random individual
-        return np.random.choice(self.population)
-
-    # Randomly select tournament_size chromosomes from the population
     tournament = np.random.choice(
         self.population,
-        size=effective_tournament_size,
-        replace=False  # Don't select the same chromosome twice
+        size=len(self.population),
+        replace=False
     )
 
-    # Return the chromosome with the best fitness from the tournament
     return min(tournament, key=lambda x: x.fitness)
 
 
@@ -119,35 +98,27 @@ def ppx_crossover(parent1: List[int], parent2: List[int], problem) -> List[int]:
 
     return child
 
-def jox_crossover(parent1: List[int], parent2: List[int], problem) -> List[int]:
-    size = len(parent1)
-    child = [-1] * size
 
-    # Get unique jobs and randomly select subset
-    unique_jobs = list(set(parent1))
-    num_jobs_to_select = random.randint(1, len(unique_jobs))
-    selected_jobs = random.sample(unique_jobs, num_jobs_to_select)
+def simple_crossover(parent1: List[int], parent2: List[int], problem) -> List[int]:
+    point = random.randint(1, len(parent1) - 1)
 
-    # Copy selected jobs from parent1
-    used_ops = {}
-    for i, job_id in enumerate(parent1):
-        if job_id in selected_jobs:
-            child[i] = job_id
-            used_ops[job_id] = used_ops.get(job_id, 0) + 1
+    child = parent1[:point] + parent2[point:]
 
-    # Fill remaining positions from parent2, maintaining relative order
-    p2_idx = 0
-    for i in range(size):
-        if child[i] == -1:  # Position needs to be filled
-            while p2_idx < size:
-                job_id = parent2[p2_idx]
-                max_ops = len(problem.jobs_data[job_id])
-                if used_ops.get(job_id, 0) < max_ops:
-                    child[i] = job_id
-                    used_ops[job_id] = used_ops.get(job_id, 0) + 1
-                    p2_idx += 1
+    # Fix any invalid operation counts
+    job_counts = {}
+    for job in child:
+        job_counts[job] = job_counts.get(job, 0) + 1
+
+    # Replace excess operations
+    for i, job in enumerate(child):
+        max_ops = len(problem.jobs_data[job])
+        if job_counts[job] > max_ops:
+            for other_job in range(len(problem.jobs_data)):
+                if job_counts.get(other_job, 0) < len(problem.jobs_data[other_job]):
+                    child[i] = other_job
+                    job_counts[job] -= 1
+                    job_counts[other_job] = job_counts.get(other_job, 0) + 1
                     break
-                p2_idx += 1
 
     return child
 

@@ -5,7 +5,7 @@ import numpy as np
 from constants import MAX_STAGNANT_GENERATIONS_STOP, STARTING_GENERATION_TO_CHECK_STAGNATION
 from genetic_operators import (
     swap_mutation, inversion_mutation,
-    tournament_selection, roulette_wheel_selection, ppx_crossover, jox_crossover)
+    tournament_selection, roulette_wheel_selection, ppx_crossover, simple_crossover, )
 from models import JobShopProblem, JobShopChromosome
 
 
@@ -107,8 +107,8 @@ class GeneticAlgorithm:
 
         if self.crossover_method == 'ppx':
             return ppx_crossover(parent1.chromosome, parent2.chromosome, self.problem)
-        elif self.crossover_method == 'jox':
-            return jox_crossover(parent1.chromosome, parent2.chromosome, self.problem)
+        elif self.crossover_method == 'simple':
+            return simple_crossover(parent1.chromosome, parent2.chromosome, self.problem)
 
     def evaluate_population(self):
         """
