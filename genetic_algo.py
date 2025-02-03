@@ -2,9 +2,9 @@ from typing import Tuple, Dict, List
 from copy import deepcopy
 import numpy as np
 
-from genetic_operators import (smart_crossover, order_crossover,
-                               swap_mutation, inversion_mutation, scramble_mutation,
-                               tournament_selection, roulette_wheel_selection)
+from genetic_operators import (
+    swap_mutation, inversion_mutation,
+    tournament_selection, roulette_wheel_selection, ppx_crossover, jox_crossover)
 from models import JobShopProblem, JobShopChromosome
 
 MAX_STAGNANT_GENERATIONS_STOP = 20
@@ -18,7 +18,7 @@ class GeneticAlgorithm:
                  tournament_size: int = 5,
                  mutation_rate: float = 0.1,
                  selection_method: str = 'tournament',
-                 crossover_method: str = 'smart',
+                 crossover_method: str = 'ppx',
                  mutation_method: str = 'swap'):
         self.problem = JobShopProblem()
         self.population_size = population_size
@@ -121,18 +121,16 @@ class GeneticAlgorithm:
             return swap_mutation(chromosome, self.mutation_rate)
         elif self.mutation_method == 'inversion':
             return inversion_mutation(chromosome, self.mutation_rate)
-        elif self.mutation_method == 'scramble':
-            return scramble_mutation(chromosome, self.mutation_rate)
         else:
             raise ValueError(f"Unknown mutation method: {self.mutation_method}")
 
     def apply_crossover(self, parent1: JobShopChromosome, parent2: JobShopChromosome) -> List[int]:
         """Apply specified crossover method."""
 
-        if self.crossover_method == 'smart':
-            return smart_crossover(parent1.chromosome, parent2.chromosome, self.problem)
-        elif self.crossover_method == 'order':
-            return order_crossover(parent1.chromosome, parent2.chromosome, self.problem)
+        if self.crossover_method == 'ppx':
+            return ppx_crossover(parent1.chromosome, parent2.chromosome, self.problem)
+        elif self.crossover_method == 'jox':
+            return jox_crossover(parent1.chromosome, parent2.chromosome, self.problem)
         else:
             raise ValueError(f"Unknown crossover method: {self.crossover_method}")
 
