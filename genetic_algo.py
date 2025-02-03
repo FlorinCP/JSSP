@@ -20,6 +20,7 @@ class GeneticAlgorithm:
                  selection_method: str = 'tournament',
                  crossover_method: str = 'ppx',
                  mutation_method: str = 'swap'):
+
         self.problem = JobShopProblem()
         self.population_size = population_size
         self.generations = generations
